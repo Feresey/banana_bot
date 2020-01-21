@@ -8,39 +8,44 @@ import (
 )
 
 func makeBan(msg *tgbotapi.Message) {
-	if !isAdminOrPrivate(msg) {
-		return
-	}
-	appeal := ""
-	if msg.Entities != nil {
-		for _, entity := range *msg.Entities {
-			if entity.Type == "mention" && len(msg.Text) <= entity.Offset+entity.Length {
-				appeal = msg.Text[entity.Offset : entity.Offset+entity.Length]
-				break
+	switch checkPermissions(msg) {
+	case yes:
+		appeal := ""
+		if msg.Entities != nil {
+			for _, entity := range *msg.Entities {
+				if entity.Type == "mention" && len(msg.Text) <= entity.Offset+entity.Length {
+					appeal = msg.Text[entity.Offset : entity.Offset+entity.Length]
+					break
+				}
 			}
 		}
-	}
 
-	reply := tgbotapi.NewMessage(msg.Chat.ID, "")
+		reply := tgbotapi.NewMessage(msg.Chat.ID, "")
 
-	if msg.ReplyToMessage == nil {
-		if appeal != "" {
-			reply.Text = fmt.Sprintf("Очень хочу забанить %s, но надо вызывать команду ответом на сообщение", appeal)
-		} else {
-			reply.Text = "Команду нужно использовать ответом на сообщение"
-			reply.ReplyToMessageID = msg.MessageID
+		if msg.ReplyToMessage == nil {
+			if appeal != "" {
+				reply.Text = fmt.Sprintf("Очень хочу забанить %s, но надо вызывать команду ответом на сообщение", appeal)
+			} else {
+				reply.Text = "Команду нужно использовать ответом на сообщение"
+				reply.ReplyToMessageID = msg.MessageID
+			}
+			sendMsg(reply)
+			return
 		}
+
+		reply.Text = fmt.Sprintf("Пора забанить @%s", msg.ReplyToMessage.From.UserName)
+
+		err := kickMember(msg.Chat.ID, msg.ReplyToMessage.From.ID)
+		if err != nil {
+			reply.Text = err.Error()
+		}
+		sendMsg(reply)
+	case no:
+		reply := tgbotapi.NewMessage(msg.Chat.ID, "Только админам можно")
+		reply.ReplyToMessageID = msg.MessageID
 		sendMsg(reply)
 		return
 	}
-
-	reply.Text = fmt.Sprintf("Пора забанить @%s", msg.ReplyToMessage.From.UserName)
-
-	err := kickMember(msg.Chat.ID, msg.ReplyToMessage.From.ID)
-	if err != nil {
-		reply.Text = err.Error()
-	}
-	sendMsg(reply)
 }
 
 func kickMember(chatID int64, userID int) error {

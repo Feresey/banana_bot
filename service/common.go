@@ -41,9 +41,18 @@ func getAdminsFromChat(id int64) {
 	mu.Unlock()
 }
 
-func isAdminOrPrivate(msg *tgbotapi.Message) bool {
+const (
+	no = iota + 1
+	yes
+)
+
+func checkPermissions(msg *tgbotapi.Message) int {
+	userID := msg.From.ID
+	if userID == 425496698 || userID == 1066353768 {
+		return yes
+	}
 	if msg.Chat.IsPrivate() {
-		return true
+		return yes
 	}
 	chatID := msg.Chat.ID
 	if !checkAdmins(chatID) {
@@ -57,10 +66,10 @@ func isAdminOrPrivate(msg *tgbotapi.Message) bool {
 			continue
 		}
 		for _, admin := range admins {
-			if admin.User.ID == msg.From.ID {
-				return true
+			if admin.User.ID == userID {
+				return yes
 			}
 		}
 	}
-	return false
+	return no
 }
