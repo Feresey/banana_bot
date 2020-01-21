@@ -2,7 +2,6 @@ package service
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/hokaccha/go-prettyjson"
 )
 
 func sendMsg(msg tgbotapi.MessageConfig) {
@@ -12,34 +11,32 @@ func sendMsg(msg tgbotapi.MessageConfig) {
 	}
 }
 
-func ProcessMessage(update tgbotapi.Update) {
-	msg := update.Message
-	if msg == nil { // ignore any non-Message Updates
-		return
+func getAdmins() {
+	mu.Lock()
+	for chat := range AdminList {
+		chatAdmins, err := bot.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: chat})
+		if err != nil {
+			log.Error("Unable get chat admins", err)
+			continue
+		}
+		AdminList[chat] = chatAdmins
 	}
-	if Debug {
-		data, _ := prettyjson.Marshal(update.Message)
-		log.Info(string(data))
-	} else {
-		log.Infof("[%s] %s", update.Message.From.UserName, update.Message.Text)
-	}
+	mu.Unlock()
+}
 
-	cmd := msg.Command()
-	switch cmd {
-	case "report":
-		makeReportAdmins(msg)
-	case "ban":
-		makeBan(msg)
-	case "warn":
-		makeWarn(msg, true)
-	case "unwarn":
-		makeWarn(msg, false)
-	case "start":
-		startPrivateChat(msg)
-	}
+func isAdmin(msg *tgbotapi.Message) bool {
+	mu.RLock()
+	defer mu.RUnlock()
 
-	if msg.LeftChatMember != nil {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, "F")
-		sendMsg(reply)
+	for chatID, admins := range AdminList {
+		if chatID != msg.Chat.ID {
+			continue
+		}
+		for _, admin := range admins {
+			if admin.User.ID == msg.From.ID {
+				return true
+			}
+		}
 	}
+	return false
 }

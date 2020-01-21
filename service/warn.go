@@ -8,6 +8,9 @@ import (
 )
 
 func makeWarn(msg *tgbotapi.Message, add bool) {
+	if !isAdmin(msg) {
+		return
+	}
 	if msg.ReplyToMessage == nil {
 		reply := tgbotapi.NewMessage(msg.Chat.ID, "Не указано кому /warn кидать")
 		sendMsg(reply)
@@ -18,6 +21,23 @@ func makeWarn(msg *tgbotapi.Message, add bool) {
 	if err != nil {
 		log.Warn(err)
 	}
-	reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("@%s /warn [%d/5]", msg.ReplyToMessage.From.UserName, total))
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "")
+
+	user := msg.ReplyToMessage.From
+	switch {
+	case total < 5:
+		reply.Text = fmt.Sprintf("@%s Предупреждение %d/5", user.UserName, total)
+	case total == 5:
+		reply.Text = fmt.Sprintf("@%s Последнее предупреждение!", user.UserName)
+	default:
+		reply.Text = "F"
+	}
+
+	if total > 5 {
+		err = kickMember(msg.Chat.ID, user.ID)
+		if err != nil {
+			reply.Text = err.Error()
+		}
+	}
 	sendMsg(reply)
 }
