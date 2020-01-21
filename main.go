@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	flag.BoolVar(&service.Debug, "debug", false, "print all message data")
+	flag.Parse()
 	log := logging.NewLogger("Bot")
 	token := os.Getenv("TOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)

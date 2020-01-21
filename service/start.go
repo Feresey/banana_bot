@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	log *logging.Logger
-	bot *tgbotapi.BotAPI
+	log   *logging.Logger
+	bot   *tgbotapi.BotAPI
+	Debug = false
 )
 
 func Init(logger *logging.Logger, bott *tgbotapi.BotAPI) {

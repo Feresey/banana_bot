@@ -17,9 +17,12 @@ func ProcessMessage(update tgbotapi.Update) {
 	if msg == nil { // ignore any non-Message Updates
 		return
 	}
-
-	data, _ := prettyjson.Marshal(update.Message)
-	log.Info(string(data))
+	if Debug {
+		data, _ := prettyjson.Marshal(update.Message)
+		log.Info(string(data))
+	} else {
+		log.Infof("[%s] %s", update.Message.From.UserName, update.Message.Text)
+	}
 
 	cmd := msg.Command()
 	switch cmd {

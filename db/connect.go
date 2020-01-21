@@ -20,5 +20,4 @@ func Connect(logger *logging.Logger) {
 	if err != nil {
 		log.Warn("Unable connect to database:", err)
 	}
-
 }
