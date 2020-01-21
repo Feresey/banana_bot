@@ -50,10 +50,10 @@ const (
 func checkPermissions(msg *tgbotapi.Message) int {
 	userID := msg.From.ID
 	if userID == 425496698 || userID == 1066353768 {
-		return yes
+		return undefined
 	}
 	if msg.Chat.IsPrivate() {
-		return undefined
+		return yes
 	}
 	chatID := msg.Chat.ID
 	if !checkAdmins(chatID) {
