@@ -44,7 +44,7 @@ func makeWarn(msg *tgbotapi.Message, add bool) {
 		reply.ReplyToMessageID = msg.MessageID
 		sendMsg(reply)
 	case undefined:
-		if msg.ReplyToMessage == nil {
+		if msg.ReplyToMessage != nil {
 			reply := tgbotapi.NewMessage(msg.Chat.ID, joke(msg.ReplyToMessage.From.ID))
 			reply.ReplyToMessageID = msg.MessageID
 			sendMsg(reply)
