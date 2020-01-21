@@ -1,1 +1,1 @@
-worker: bin/bot-tg
+worker: bin/banana_bot
