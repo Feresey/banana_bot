@@ -45,9 +45,11 @@ func makeBan(msg *tgbotapi.Message) {
 		reply.ReplyToMessageID = msg.MessageID
 		sendMsg(reply)
 	case undefined:
-		reply := tgbotapi.NewMessage(msg.Chat.ID, joke(msg.From.ID))
-		reply.ReplyToMessageID = msg.MessageID
-		sendMsg(reply)
+		if msg.ReplyToMessage == nil {
+			reply := tgbotapi.NewMessage(msg.Chat.ID, joke(msg.ReplyToMessage.From.ID))
+			reply.ReplyToMessageID = msg.MessageID
+			sendMsg(reply)
+		}
 	}
 }
 
