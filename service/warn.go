@@ -9,6 +9,9 @@ import (
 
 func makeWarn(msg *tgbotapi.Message, add bool) {
 	if !isAdminOrPrivate(msg) {
+		reply := tgbotapi.NewMessage(msg.Chat.ID, "Только админам можно")
+		reply.ReplyToMessageID = msg.MessageID
+		sendMsg(reply)
 		return
 	}
 	if msg.ReplyToMessage == nil {
