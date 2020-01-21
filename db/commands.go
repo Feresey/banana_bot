@@ -21,7 +21,9 @@ func Warn(id int, add bool) (total int, err error) {
 	}
 
 	if add {
-		total++
+		if total <= 5 {
+			total++
+		}
 	} else if total > 0 {
 		total--
 	}
