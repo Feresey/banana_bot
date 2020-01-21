@@ -43,6 +43,9 @@ func makeWarn(msg *tgbotapi.Message, add bool) {
 		reply := tgbotapi.NewMessage(msg.Chat.ID, "Только админам можно")
 		reply.ReplyToMessageID = msg.MessageID
 		sendMsg(reply)
-		return
+	case undefined:
+		reply := tgbotapi.NewMessage(msg.Chat.ID, joke(msg.From.ID))
+		reply.ReplyToMessageID = msg.MessageID
+		sendMsg(reply)
 	}
 }

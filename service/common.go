@@ -74,3 +74,14 @@ func checkPermissions(msg *tgbotapi.Message) int {
 	}
 	return no
 }
+
+func joke(userID int) string {
+	switch userID {
+	case 425496698:
+		return "Я не могу пойти против создателя. Ave Banana!"
+	case 1066353768:
+		return "Бан бану рознь."
+	default:
+		return ""
+	}
+}

@@ -44,7 +44,10 @@ func makeBan(msg *tgbotapi.Message) {
 		reply := tgbotapi.NewMessage(msg.Chat.ID, "Только админам можно")
 		reply.ReplyToMessageID = msg.MessageID
 		sendMsg(reply)
-		return
+	case undefined:
+		reply := tgbotapi.NewMessage(msg.Chat.ID, joke(msg.From.ID))
+		reply.ReplyToMessageID = msg.MessageID
+		sendMsg(reply)
 	}
 }
 
@@ -55,11 +58,8 @@ func kickMember(chatID int64, userID int) error {
 			UserID: userID,
 		}}
 
-	switch userID {
-	case 425496698:
-		return errors.New("Я не могу пойти против создателя. Ave Banana!")
-	case 1066353768:
-		return errors.New("Бан бану рознь.")
+	if s := joke(userID); s != "" {
+		return errors.New(s)
 	}
 
 	resp, err := bot.KickChatMember(*kick)
