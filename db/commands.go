@@ -4,13 +4,18 @@ func Warn(id int, add bool) (total int, err error) {
 	if !checkIDExists(id) {
 		createID(id)
 	}
-	err = DB.QueryRow(
+	tx, _ := DB.Begin()
+	err = tx.QueryRow(
 		`SELECT total
 	FROM warn
 	WHERE
 		id=$1`,
 		id,
 	).Scan(&total)
+	if err != nil {
+		return
+	}
+	err = tx.Commit()
 	if err != nil {
 		return
 	}
@@ -25,6 +30,7 @@ func Warn(id int, add bool) (total int, err error) {
 		"UPDATE warn SET total=$1 WHERE id=$2",
 		total, id,
 	)
+
 	return
 }
 

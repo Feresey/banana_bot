@@ -47,6 +47,7 @@ func notifyExit(log *logging.Logger) {
 	signal.Notify(sigint, syscall.SIGTERM)
 
 	<-sigint
+	db.Shutdown()
 	log.Info("\nBot closed." + time.Now().String())
 	os.Exit(0)
 }

@@ -22,3 +22,7 @@ func Connect(logger *logging.Logger) {
 		log.Warn("Unable connect to database:", err)
 	}
 }
+
+func Shutdown() {
+	DB.Close()
+}
