@@ -6,7 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func tryBan(msg *tgbotapi.Message) {
+func makeBan(msg *tgbotapi.Message) {
 	appeal := ""
 	if msg.Entities != nil {
 		for _, entity := range *msg.Entities {

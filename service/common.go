@@ -27,9 +27,11 @@ func ProcessMessage(update tgbotapi.Update) {
 	cmd := msg.Command()
 	switch cmd {
 	case "report":
-		tryReportAdmins(msg)
+		makeReportAdmins(msg)
 	case "ban":
-		tryBan(msg)
+		makeBan(msg)
+	case "warn":
+		makeWarn(msg)
 	case "start":
 		startPrivateChat(msg)
 	}
