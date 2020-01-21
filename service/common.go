@@ -11,6 +11,13 @@ func sendMsg(msg tgbotapi.MessageConfig) {
 	}
 }
 
+func checkAdmins(id int64) bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	_, ok := AdminList[id]
+	return ok
+}
+
 func getAdmins() {
 	mu.Lock()
 	for chat := range AdminList {
@@ -24,15 +31,29 @@ func getAdmins() {
 	mu.Unlock()
 }
 
+func getAdminsFromChat(id int64) {
+	mu.Lock()
+	chatAdmins, err := bot.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: id})
+	if err != nil {
+		log.Error("Unable get chat admins", err)
+	}
+	AdminList[id] = chatAdmins
+	mu.Unlock()
+}
+
 func isAdminOrPrivate(msg *tgbotapi.Message) bool {
 	if msg.Chat.IsPrivate() {
 		return true
 	}
+	chatID := msg.Chat.ID
+	if !checkAdmins(chatID) {
+		getAdminsFromChat(chatID)
+	}
 	mu.RLock()
 	defer mu.RUnlock()
 
-	for chatID, admins := range AdminList {
-		if chatID != msg.Chat.ID {
+	for localID, admins := range AdminList {
+		if localID != chatID {
 			continue
 		}
 		for _, admin := range admins {

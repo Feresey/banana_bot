@@ -15,7 +15,7 @@ var (
 	Debug = false
 
 	// map[chatID][]userID
-	AdminList map[int64][]tgbotapi.ChatMember
+	AdminList = map[int64][]tgbotapi.ChatMember{}
 	mu        = &sync.RWMutex{}
 )
 
