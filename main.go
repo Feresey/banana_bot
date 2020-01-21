@@ -9,9 +9,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
-	"github.com/Feresey/bot-tg/db"
-	"github.com/Feresey/bot-tg/logging"
-	"github.com/Feresey/bot-tg/service"
+	"github.com/Feresey/banana_bot/db"
+	"github.com/Feresey/banana_bot/logging"
+	"github.com/Feresey/banana_bot/service"
 )
 
 func main() {

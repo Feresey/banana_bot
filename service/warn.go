@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	"github.com/Feresey/bot-tg/db"
+	"github.com/Feresey/banana_bot/db"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 

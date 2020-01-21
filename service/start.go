@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/Feresey/bot-tg/logging"
+	"github.com/Feresey/banana_bot/logging"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 

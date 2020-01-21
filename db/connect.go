@@ -1,22 +1,23 @@
 package db
 
 import (
-	"context"
+	"database/sql"
 	"os"
 
-	"github.com/Feresey/bot-tg/logging"
-	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/lib/pq"
+
+	"github.com/Feresey/banana_bot/logging"
 )
 
 var (
-	db  *pgxpool.Pool
+	db  *sql.DB
 	log *logging.Logger
 )
 
 func Connect(logger *logging.Logger) {
 	var err error
 	log = logger
-	db, err = pgxpool.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Warn("Unable connect to database:", err)
 	}
