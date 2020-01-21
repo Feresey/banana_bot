@@ -18,7 +18,7 @@ func makeWarn(msg *tgbotapi.Message) {
 	if err != nil {
 		log.Warn(err)
 	}
-	reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("@%s /warn [%d/5]", msg.ReplyToMessage.From.FirstName, total))
+	reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("@%s /warn [%d/5]", msg.ReplyToMessage.From.UserName, total))
 	sendMsg(reply)
 }
 
