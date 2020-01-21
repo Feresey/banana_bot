@@ -8,7 +8,7 @@ import (
 )
 
 func makeWarn(msg *tgbotapi.Message, add bool) {
-	if !isAdmin(msg) {
+	if !isAdminOrPrivate(msg) {
 		return
 	}
 	if msg.ReplyToMessage == nil {

@@ -8,7 +8,7 @@ import (
 )
 
 func makeBan(msg *tgbotapi.Message) {
-	if !isAdmin(msg) {
+	if !isAdminOrPrivate(msg) {
 		return
 	}
 	appeal := ""

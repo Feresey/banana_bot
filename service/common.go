@@ -24,7 +24,10 @@ func getAdmins() {
 	mu.Unlock()
 }
 
-func isAdmin(msg *tgbotapi.Message) bool {
+func isAdminOrPrivate(msg *tgbotapi.Message) bool {
+	if msg.Chat.IsPrivate() {
+		return true
+	}
 	mu.RLock()
 	defer mu.RUnlock()
 
