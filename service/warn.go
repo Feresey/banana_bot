@@ -28,22 +28,19 @@ func addWarn(id int) (int, error) {
 	// if !checkIdExists(id) {
 	// 	createID(id)
 	// }
-	// err := db.DB.QueryRow(context.Background(),
-	// 	`SELECT total
-	// FROM $table
-	// WHERE
-	// 	id=$id`,
-	// 	map[string]interface{}{
-	// 		"table": "warn",
-	// 		"id":    id,
-	// 	}).Scan(&total)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	err := db.DB.QueryRow(context.Background(),
+		`SELECT total
+	FROM warn
+	WHERE
+		id=$1`,
+		id,
+	).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
 
-	_, err := db.DB.Query(context.Background(),
-		"UPDATE $1 SET total=$2 WHERE id=$3",
-		"warn",
+	_, err = db.DB.Query(context.Background(),
+		"UPDATE warn SET total=$1 WHERE id=$2",
 		1,
 		id,
 	)
