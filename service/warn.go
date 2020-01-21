@@ -22,12 +22,11 @@ func makeWarn(msg *tgbotapi.Message) {
 	sendMsg(reply)
 }
 
-func addWarn(id int) (int, error) {
-	var total int
+func addWarn(id int) (total int, err error) {
 	if !checkIDExists(id) {
 		createID(id)
 	}
-	err := db.QueryRow(
+	err = db.QueryRow(
 		`SELECT total
 	FROM warn
 	WHERE
@@ -35,18 +34,19 @@ func addWarn(id int) (int, error) {
 		id,
 	).Scan(&total)
 	if err != nil {
-		return 0, err
+		return
 	}
 
+	total++
 	_, err = db.Query(
 		"UPDATE warn SET total=$1 WHERE id=$2",
-		1, id,
+		total, id,
 	)
 	if err != nil {
-		return 0, err
+		return
 	}
 
-	return total, nil
+	return
 }
 
 func checkIDExists(id int) bool {
