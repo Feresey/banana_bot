@@ -67,8 +67,8 @@ func ProcessMessage(update tgbotapi.Update) {
 		startPrivateChat(msg)
 	}
 
-	if msg.LeftChatMember != nil {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, "F")
-		sendMsg(reply)
-	}
+	// if msg.LeftChatMember != nil {
+	// 	reply := tgbotapi.NewMessage(msg.Chat.ID, "F")
+	// 	sendMsg(reply)
+	// }
 }
