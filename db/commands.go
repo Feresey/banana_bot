@@ -1,6 +1,6 @@
 package db
 
-func AddWarn(id int) (total int, err error) {
+func Warn(id int, add bool) (total int, err error) {
 	if !checkIDExists(id) {
 		createID(id)
 	}
@@ -14,34 +14,9 @@ func AddWarn(id int) (total int, err error) {
 	if err != nil {
 		return
 	}
-
-	total++
-	_, err = Query(
-		"UPDATE warn SET total=$1 WHERE id=$2",
-		total, id,
-	)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func UnWarn(id int) (total int, err error) {
-	if !checkIDExists(id) {
-		createID(id)
-	}
-	err = QueryRow(
-		`SELECT total
-	FROM warn
-	WHERE
-		id=$1`,
-		id,
-	).Scan(&total)
-	if err != nil {
-		return
-	}
-	if total > 0 {
+	if add {
+		total++
+	} else if total > 0 {
 		total--
 	}
 	_, err = Query(

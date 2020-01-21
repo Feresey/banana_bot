@@ -31,9 +31,9 @@ func ProcessMessage(update tgbotapi.Update) {
 	case "ban":
 		makeBan(msg)
 	case "warn":
-		makeWarn(msg)
+		makeWarn(msg, true)
 	case "unwarn":
-		makeUnWarn(msg)
+		makeWarn(msg, false)
 	case "start":
 		startPrivateChat(msg)
 	}
