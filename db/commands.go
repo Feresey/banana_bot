@@ -4,13 +4,13 @@ func Warn(id int, add bool) (total int, err error) {
 	if !checkIDExists(id) {
 		createID(id)
 	}
-	_, err = QueryRow(
+	err = DB.QueryRow(
 		`SELECT total
 	FROM warn
 	WHERE
 		id=$1`,
 		id,
-	)
+	).Scan(&total)
 	if err != nil {
 		return
 	}
@@ -21,7 +21,7 @@ func Warn(id int, add bool) (total int, err error) {
 		total--
 	}
 
-	_, err = Query(
+	_, err = DB.Exec(
 		"UPDATE warn SET total=$1 WHERE id=$2",
 		total, id,
 	)
@@ -29,7 +29,7 @@ func Warn(id int, add bool) (total int, err error) {
 }
 
 func checkIDExists(id int) bool {
-	_, err := QueryRow(
+	_, err := DB.Exec(
 		`SELECT total
 	FROM warn
 	WHERE
@@ -38,7 +38,7 @@ func checkIDExists(id int) bool {
 }
 
 func createID(id int) bool {
-	_, err := QueryRow(
+	_, err := DB.Exec(
 		`INSERT INTO warn
 	VALUES
 		($1, $2)`,
