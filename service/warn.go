@@ -25,29 +25,46 @@ func makeWarn(msg *tgbotapi.Message) {
 
 func addWarn(id int) (int, error) {
 	var total int
-	err := db.DB.QueryRow(context.Background(),
-		`SELECT total 
-	FROM $table 
-	WHERE
-		id=$id`,
-		map[string]interface{}{
-			"table": "warn",
-			"id":    id,
-		}).Scan(&total)
-	if err != nil {
-		return 0, err
-	}
+	// if !checkIdExists(id) {
+	// 	createID(id)
+	// }
+	// err := db.DB.QueryRow(context.Background(),
+	// 	`SELECT total
+	// FROM $table
+	// WHERE
+	// 	id=$id`,
+	// 	map[string]interface{}{
+	// 		"table": "warn",
+	// 		"id":    id,
+	// 	}).Scan(&total)
+	// if err != nil {
+	// 	return 0, err
+	// }
 
-	_, err = db.DB.Query(context.Background(),
-		"UPDATE $table SET total=$total WHERE id=$id",
-		map[string]interface{}{
-			"table": "warn",
-			"total": 1,
-			"id":    id,
-		})
+	_, err := db.DB.Query(context.Background(),
+		"UPDATE $1 SET total=$2 WHERE id=$3",
+		"warn",
+		1,
+		id,
+	)
 	if err != nil {
 		return 0, err
 	}
 
 	return total, nil
 }
+
+// func getID(id int) (ok bool, total int) {
+// 	err := db.DB.QueryRow(context.Background(),
+// 		`SELECT total
+// 	FROM $table
+// 	WHERE
+// 		id=$id`,
+// 		map[string]interface{}{
+// 			"table": "warn",
+// 			"id":    id,
+// 		}).Scan(&total)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// }
