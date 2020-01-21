@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	DB  *pgx.Conn
+	db  *pgx.Conn
 	log *logging.Logger
 )
 
 func Connect(logger *logging.Logger) {
 	var err error
 	log = logger
-	DB, err = pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	db, err = pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Warn("Unable connect to database:", err)
 	}

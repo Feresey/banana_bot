@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/Feresey/bot-tg/db"
@@ -18,6 +17,7 @@ func makeWarn(msg *tgbotapi.Message) {
 	total, err := addWarn(msg.ReplyToMessage.From.ID)
 	if err != nil {
 		log.Warn(err)
+		return
 	}
 	reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("@%s /warn [%d/5]", msg.ReplyToMessage.From.FirstName, total))
 	sendMsg(reply)
@@ -25,10 +25,10 @@ func makeWarn(msg *tgbotapi.Message) {
 
 func addWarn(id int) (int, error) {
 	var total int
-	// if !checkIdExists(id) {
-	// 	createID(id)
-	// }
-	err := db.DB.QueryRow(context.Background(),
+	if !checkIDExists(id) {
+		createID(id)
+	}
+	err := db.QueryRow(
 		`SELECT total
 	FROM warn
 	WHERE
@@ -39,10 +39,9 @@ func addWarn(id int) (int, error) {
 		return 0, err
 	}
 
-	_, err = db.DB.Query(context.Background(),
+	_, err = db.Query(
 		"UPDATE warn SET total=$1 WHERE id=$2",
-		1,
-		id,
+		1, id,
 	)
 	if err != nil {
 		return 0, err
@@ -51,17 +50,24 @@ func addWarn(id int) (int, error) {
 	return total, nil
 }
 
-// func getID(id int) (ok bool, total int) {
-// 	err := db.DB.QueryRow(context.Background(),
-// 		`SELECT total
-// 	FROM $table
-// 	WHERE
-// 		id=$id`,
-// 		map[string]interface{}{
-// 			"table": "warn",
-// 			"id":    id,
-// 		}).Scan(&total)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// }
+func checkIDExists(id int) bool {
+	var b string
+	err := db.QueryRow(
+		`SELECT total
+	FROM warn
+	WHERE
+		id=$id`, id).Scan(&b)
+	log.Info(b)
+	return err == nil
+}
+
+func createID(id int) bool {
+	var b string
+	err := db.QueryRow(
+		`INSERT INTO warn
+	VALUES
+		($1, $2)`,
+		id, 0).Scan(&b)
+	log.Info(b)
+	return err == nil
+}
