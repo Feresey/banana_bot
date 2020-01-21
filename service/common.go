@@ -44,6 +44,7 @@ func getAdminsFromChat(id int64) {
 const (
 	no = iota + 1
 	yes
+	undefined
 )
 
 func checkPermissions(msg *tgbotapi.Message) int {
@@ -52,7 +53,7 @@ func checkPermissions(msg *tgbotapi.Message) int {
 		return yes
 	}
 	if msg.Chat.IsPrivate() {
-		return yes
+		return undefined
 	}
 	chatID := msg.Chat.ID
 	if !checkAdmins(chatID) {
