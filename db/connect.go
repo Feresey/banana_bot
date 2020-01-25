@@ -4,25 +4,33 @@ import (
 	"database/sql"
 	"os"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // постгря
 
 	"github.com/Feresey/banana_bot/logging"
 )
 
 var (
-	DB  *sql.DB
-	log *logging.Logger
+	db      *sql.DB
+	log     *logging.Logger
+	maxWarn int
+
+	warn   string = "warn"
+	report string = "sub"
 )
 
-func Connect(logger *logging.Logger) {
+// Connect :
+func Connect(logger *logging.Logger, warnMax int) error {
 	var err error
 	log = logger
-	DB, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Warn("Unable connect to database:", err)
+	maxWarn = warnMax
+	if maxWarn <= 0 {
+		log.Panic("max warn in negative")
 	}
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	return err
 }
 
+// Shutdown :
 func Shutdown() {
-	DB.Close()
+	db.Close()
 }

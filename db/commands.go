@@ -1,55 +1,57 @@
 package db
 
-func Warn(id int, add bool) (total int, err error) {
-	if !checkIDExists(id) {
-		createID(id)
+import "github.com/Feresey/banana_bot/model"
+
+// Warn : warns a person in a chat
+func Warn(person *model.Person, add bool) (total int, err error) {
+	if !checkPersonExists(person, warn) {
+		createID(person, warn)
 	}
-	tx, _ := DB.Begin()
-	err = tx.QueryRow(
+
+	err = db.QueryRow(
 		`SELECT total
-	FROM warn
-	WHERE
-		id=$1`,
-		id,
-	).Scan(&total)
-	if err != nil {
-		return
-	}
-	err = tx.Commit()
+		FROM warn
+		WHERE
+			chatid=$1 AND userid=$2`,
+		person.ChatID, person.UserID).
+		Scan(&total)
 	if err != nil {
 		return
 	}
 
 	if add {
-		if total <= 5 {
-			total++
-		}
-	} else if total > 0 {
+		total++
+	} else {
 		total--
 	}
 
-	_, err = DB.Exec(
-		"UPDATE warn SET total=$1 WHERE id=$2",
-		total, id,
-	)
+	switch {
+	case total >= 5:
+		total = 6
+	case total < 0:
+		total = 0
+	}
+
+	_, err = db.Exec(
+		`UPDATE warn
+		SET total=$3 WHERE
+			chatid=$1 AND userid=$2`,
+		person.ChatID, person.UserID, total)
 
 	return
 }
 
-func checkIDExists(id int) bool {
-	_, err := DB.Exec(
-		`SELECT total
-	FROM warn
-	WHERE
-		id=$id`, id)
-	return err == nil
-}
+// Report : get user ids, who subscribed on reports
+func Report(chatID int64) ([]int64, error) {
+	rows, err := db.Query(
+		`SELECT userid
+		FROM `+report+`
+		WHERE chatid=$1`, chatID)
+	if err != nil {
+		return nil, err
+	}
 
-func createID(id int) bool {
-	_, err := DB.Exec(
-		`INSERT INTO warn
-	VALUES
-		($1, $2)`,
-		id, 0)
-	return err == nil
+	res := []int64{}
+	err = rows.Scan(&res)
+	return res, err
 }
