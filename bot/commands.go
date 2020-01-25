@@ -124,11 +124,11 @@ func (b *Bot) report(msg *model.Message) (*model.Reply, error) {
 
 func (b *Bot) ban(msg *model.Message) (*model.Reply, error) {
 	reply := model.NewReply(msg)
-	user := msg.ReplyToMessage.From
 	if msg.ReplyToMessage == nil {
-		reply.Text = fmt.Sprintf("Очень хочу забанить @%s, но надо использовать команду с ответом на сообщение", user.UserName)
+		reply.Text = "Надо использовать команду ответом на сообщение"
 		return reply, nil
 	}
+	user := msg.ReplyToMessage.From
 
 	person := &model.Person{
 		ChatID: msg.Chat.ID,
