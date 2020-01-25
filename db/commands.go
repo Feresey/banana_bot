@@ -37,6 +37,10 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 		total--
 	}
 
+	if total < 0 {
+		total = 0
+	}
+
 	res, err := db.Exec(
 		`UPDATE warn
 		SET total=$3 WHERE
@@ -65,6 +69,11 @@ func Report(chatID int64) ([]int64, error) {
 	}
 
 	res := []int64{}
-	err = rows.Scan(&res)
-	return res, err
+	for rows.Next() {
+		var tmp int64
+		_ = rows.Scan(&tmp)
+		res = append(res, tmp)
+	}
+
+	return res, rows.Err()
 }
