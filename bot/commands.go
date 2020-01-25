@@ -89,7 +89,6 @@ func (b *Bot) processAdminActions(msg *model.Message) error {
 		reply, err = b.warn(msg, true)
 	case "unwarn":
 		reply, err = b.warn(msg, false)
-
 	}
 	if err != nil {
 		return err
@@ -173,15 +172,15 @@ func (b *Bot) warn(msg *model.Message, add bool) (*model.Reply, error) {
 	}
 
 	switch {
-	case total < 5:
-		reply.Text = fmt.Sprintf("@%s, Предупреждение %d/5", user.UserName, total)
-	case total == 5:
+	case total < b.maxWarn:
+		reply.Text = fmt.Sprintf("@%s, Предупреждение %d/%d", user.UserName, total, b.maxWarn)
+	case total == b.maxWarn:
 		reply.Text = fmt.Sprintf("@%s, Последнее предупреждение!", user.UserName)
 	default:
 		reply.Text = "F"
 	}
 
-	if total > 5 {
+	if total > b.maxWarn {
 		err = b.kickMember(person)
 	}
 	return reply, err

@@ -19,8 +19,9 @@ import (
 // Bot : my telegram bot
 type Bot struct {
 	*tgbotapi.BotAPI
-	log   *logging.Logger
-	debug bool
+	log     *logging.Logger
+	debug   bool
+	maxWarn int
 
 	// map[chatID][]userID
 	adminList map[int64][]tgbotapi.ChatMember
@@ -48,6 +49,7 @@ func NewBot(token string, debug bool) *Bot {
 		log:       logging.NewLogger("Bot"),
 		adminList: make(map[int64][]tgbotapi.ChatMember),
 		mu:        &sync.RWMutex{},
+		maxWarn:   5,
 	}
 
 	bot.initUpdateAdmins()
@@ -65,7 +67,7 @@ func (b *Bot) initUpdateAdmins() {
 
 // Start : initialize a bot
 func (b *Bot) Start() error {
-	err := db.Connect(b.log, 5)
+	err := db.Connect(b.log)
 	if err != nil {
 		return err
 	}

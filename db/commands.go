@@ -1,10 +1,19 @@
 package db
 
-import "github.com/Feresey/banana_bot/model"
+import (
+	"errors"
+
+	"github.com/Feresey/banana_bot/model"
+)
 
 // Warn : warns a person in a chat
 func Warn(person *model.Person, add bool) (total int, err error) {
-	if !checkPersonExists(person, warn) {
+	exist, err := checkPersonExists(person, warn)
+	if err != nil {
+		return 0, err
+	}
+
+	if !exist {
 		err = createID(person, warn)
 		if err != nil {
 			return
@@ -28,20 +37,21 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 		total--
 	}
 
-	switch {
-	case total >= 5:
-		total = 6
-	case total < 0:
-		total = 0
-	}
-
-	_, err = db.Exec(
+	res, err := db.Exec(
 		`UPDATE warn
 		SET total=$3 WHERE
 			chatid=$1 AND userid=$2`,
 		person.ChatID, person.UserID, total)
+	if err != nil {
+		return 0, err
+	}
 
-	return
+	rows, err := res.RowsAffected()
+	if rows != 1 {
+		return 0, errors.New("Error modify data")
+	}
+
+	return total, err
 }
 
 // Report : get user ids, who subscribed on reports

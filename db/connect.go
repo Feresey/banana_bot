@@ -12,20 +12,15 @@ import (
 var (
 	db      *sql.DB
 	log     *logging.Logger
-	maxWarn int
 
 	warn   string = "warn"
 	report string = "sub"
 )
 
 // Connect :
-func Connect(logger *logging.Logger, warnMax int) error {
+func Connect(logger *logging.Logger) error {
 	var err error
 	log = logger
-	maxWarn = warnMax
-	if maxWarn <= 0 {
-		log.Panic("max warn in negative")
-	}
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	return err
 }
