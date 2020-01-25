@@ -11,11 +11,11 @@ func checkPersonExists(person *model.Person, table string) bool {
 	return err == nil
 }
 
-func createID(person *model.Person, table string) bool {
+func createID(person *model.Person, table string) error {
 	_, err := db.Exec(
 		`INSERT INTO `+table+`
 		VALUES
 			($1, $2, $3)`,
 		person.ChatID, person.UserID, 0)
-	return err == nil
+	return err
 }

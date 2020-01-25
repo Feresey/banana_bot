@@ -133,9 +133,15 @@ func (b *Bot) ban(msg *model.Message) (*model.Reply, error) {
 
 	person := &model.Person{
 		ChatID: msg.Chat.ID,
-		UserID: msg.From.ID,
+		UserID: user.ID,
 	}
+
+	if r := protect(person); r != nil {
+		return r, nil
+	}
+
 	err := b.kickMember(person)
+	reply.Text = "F"
 	return reply, err
 }
 
@@ -151,16 +157,21 @@ func (b *Bot) warn(msg *model.Message, add bool) (*model.Reply, error) {
 		return reply, nil
 	}
 
+	user := msg.ReplyToMessage.From
 	person := &model.Person{
 		ChatID: msg.Chat.ID,
-		UserID: msg.From.ID,
+		UserID: user.ID,
 	}
+
+	if r := protect(person); r != nil {
+		return r, nil
+	}
+
 	total, err := db.Warn(person, add)
 	if err != nil {
 		return nil, err
 	}
 
-	user := msg.ReplyToMessage.From
 	switch {
 	case total < 5:
 		reply.Text = fmt.Sprintf("@%s, Предупреждение %d/5", user.UserName, total)
@@ -189,9 +200,15 @@ func (b *Bot) privateMessage(msg *model.Message) error {
 	return nil
 }
 
-func protect(msg *model.Message) *model.Reply {
-	reply := model.NewReply(msg)
-	switch msg.From.ID {
+func protect(p *model.Person) *model.Reply {
+	reply := &model.Reply{
+		MessageConfig: &tgbotapi.MessageConfig{
+			BaseChat: tgbotapi.BaseChat{
+				ChatID: p.ChatID,
+			},
+		},
+	}
+	switch p.UserID {
 	case 425496698:
 		reply.Text = "Я не могу пойти против создателя. Ave Banana!"
 	case 1066353768:

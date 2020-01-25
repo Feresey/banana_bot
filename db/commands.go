@@ -5,7 +5,10 @@ import "github.com/Feresey/banana_bot/model"
 // Warn : warns a person in a chat
 func Warn(person *model.Person, add bool) (total int, err error) {
 	if !checkPersonExists(person, warn) {
-		createID(person, warn)
+		err = createID(person, warn)
+		if err != nil {
+			return
+		}
 	}
 
 	err = db.QueryRow(
