@@ -16,7 +16,7 @@ func (b *Bot) sendMsg(msg tgbotapi.Chattable) {
 
 func (b *Bot) isPublicMethod(cmd string) bool {
 	switch cmd {
-	case "report":
+	case "report", "":
 		return true
 	default:
 		return false
@@ -28,7 +28,7 @@ func (b *Bot) isAdmin(msg *model.Message) bool {
 		return true
 	}
 
-	member, err := b.GetChatMember(tgbotapi.ChatConfigWithUser{ChatID: msg.Chat.ID})
+	member, err := b.GetChatMember(tgbotapi.ChatConfigWithUser{ChatID: msg.Chat.ID, UserID: msg.From.ID})
 	if err != nil {
 		b.log.Error("Unable get info about user", err)
 	}

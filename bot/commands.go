@@ -37,14 +37,19 @@ func (b *Bot) processMessage(msg *model.Message) {
 }
 
 func (b *Bot) groupMessage(msg *model.Message) error {
-	isPublic := b.isPublicMethod(msg.Command())
+	cmd := msg.Command()
+	if cmd == "" {
+		return nil
+	}
+
+	isPublic := b.isPublicMethod(cmd)
 	isAdmin := b.isAdmin(msg)
 
 	if !isPublic {
 		if !isAdmin {
 			reply := model.NewReply(msg)
 			reply.Text = "Только админам можно"
-			b.Send(reply)
+			b.sendMsg(reply)
 			return nil
 		}
 		return b.processAdminActions(msg)
