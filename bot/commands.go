@@ -9,55 +9,55 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func (b *Bot) processMessage(msg *model.Message) {
+func  processMessage(msg *model.Message) {
 	// предполагая что у меня руки из жопы я оставлю это
 	defer func() {
 		if err := recover(); err != nil {
-			b.log.Error("Fall in panic", err)
+			log.Error("Fall in panic", err)
 		}
 	}()
 
-	if b.debug {
+	if debug {
 		data, _ := json.MarshalIndent(msg, "", "\t")
-		b.log.Info(string(data))
+		log.Info(string(data))
 	} else {
-		b.log.Infof("[%s] %s", msg.From.UserName, msg.Text)
+		log.Infof("[%s] %s", msg.From.UserName, msg.Text)
 	}
 
 	switch msg.Chat.Type {
 	case "private":
-		if err := b.privateMessage(msg); err != nil {
-			b.log.Warn(err)
+		if err := privateMessage(msg); err != nil {
+			log.Warn(err)
 		}
 	case "group", "supergroup":
-		if err := b.groupMessage(msg); err != nil {
-			b.log.Warn(err)
+		if err := groupMessage(msg); err != nil {
+			log.Warn(err)
 		}
 	}
 }
 
-func (b *Bot) groupMessage(msg *model.Message) error {
+func  groupMessage(msg *model.Message) error {
 	cmd := msg.Command()
 	if cmd == "" {
 		return nil
 	}
 
-	isPublic := b.isPublicMethod(cmd)
-	isAdmin := b.isAdmin(msg)
+	isPublic := isPublicMethod(cmd)
+	isAdmin := isAdmin(msg)
 
 	if !isPublic {
 		if !isAdmin {
 			reply := model.NewReply(msg)
 			reply.Text = "Только админам можно"
-			b.sendMsg(reply)
+			sendMsg(reply)
 			return nil
 		}
-		return b.processAdminActions(msg)
+		return processAdminActions(msg)
 	}
-	return b.processPublicActions(msg)
+	return processPublicActions(msg)
 }
 
-func (b *Bot) processPublicActions(msg *model.Message) error {
+func  processPublicActions(msg *model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -66,19 +66,19 @@ func (b *Bot) processPublicActions(msg *model.Message) error {
 
 	switch cmd {
 	case "report":
-		reply, err = b.report(msg)
+		reply, err = report(msg)
 	}
 	if err != nil {
 		return err
 	}
 
 	if reply != nil {
-		b.sendMsg(reply)
+		sendMsg(reply)
 	}
 	return nil
 }
 
-func (b *Bot) processAdminActions(msg *model.Message) error {
+func  processAdminActions(msg *model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -87,25 +87,25 @@ func (b *Bot) processAdminActions(msg *model.Message) error {
 
 	switch cmd {
 	case "report":
-		reply, err = b.report(msg)
+		reply, err = report(msg)
 	case "ban":
-		reply, err = b.ban(msg)
+		reply, err = ban(msg)
 	case "warn":
-		reply, err = b.warn(msg, true)
+		reply, err = warn(msg, true)
 	case "unwarn":
-		reply, err = b.warn(msg, false)
+		reply, err = warn(msg, false)
 	}
 	if err != nil {
 		return err
 	}
 
 	if reply != nil {
-		b.sendMsg(reply)
+		sendMsg(reply)
 	}
 	return nil
 }
 
-func (b *Bot) report(msg *model.Message) (*model.Reply, error) {
+func  report(msg *model.Message) (*model.Reply, error) {
 	subscribed, err := db.Report(msg.Chat.ID)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (b *Bot) report(msg *model.Message) (*model.Reply, error) {
 				},
 			},
 		}
-		b.sendMsg(reply)
+		sendMsg(reply)
 	}
 
 	reply := model.NewReply(msg)
@@ -127,7 +127,7 @@ func (b *Bot) report(msg *model.Message) (*model.Reply, error) {
 	return reply, nil
 }
 
-func (b *Bot) ban(msg *model.Message) (*model.Reply, error) {
+func  ban(msg *model.Message) (*model.Reply, error) {
 	reply := model.NewReply(msg)
 	if msg.ReplyToMessage == nil {
 		reply.Text = "Надо использовать команду ответом на сообщение"
@@ -144,12 +144,12 @@ func (b *Bot) ban(msg *model.Message) (*model.Reply, error) {
 		return r, nil
 	}
 
-	err := b.kickMember(person)
+	err := kickMember(person)
 	reply.Text = "F"
 	return reply, err
 }
 
-func (b *Bot) warn(msg *model.Message, add bool) (*model.Reply, error) {
+func  warn(msg *model.Message, add bool) (*model.Reply, error) {
 	reply := model.NewReply(msg)
 
 	if msg.ReplyToMessage == nil {
@@ -177,28 +177,28 @@ func (b *Bot) warn(msg *model.Message, add bool) (*model.Reply, error) {
 	}
 
 	switch {
-	case total < b.maxWarn:
-		reply.Text = fmt.Sprintf("@%s, Предупреждение %d/%d", user.UserName, total, b.maxWarn)
-	case total == b.maxWarn:
+	case total < maxWarn:
+		reply.Text = fmt.Sprintf("@%s, Предупреждение %d/%d", user.UserName, total, maxWarn)
+	case total == maxWarn:
 		reply.Text = fmt.Sprintf("@%s, Последнее предупреждение!", user.UserName)
 	default:
 		reply.Text = "F"
 	}
 
-	if total > b.maxWarn {
-		err = b.kickMember(person)
+	if total > maxWarn {
+		err = kickMember(person)
 	}
 	return reply, err
 }
 
-func (b *Bot) privateMessage(msg *model.Message) error {
+func  privateMessage(msg *model.Message) error {
 	cmd := msg.Command()
-	// b.GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
+	// GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
 	switch cmd {
 	case "start":
 		reply := model.NewReply(msg)
 		reply.Text = "Приветствую, кожаный мешок"
-		b.sendMsg(reply)
+		sendMsg(reply)
 	default:
 	}
 	return nil
@@ -226,7 +226,7 @@ func protect(p *model.Person, id int) *model.Reply {
 	return reply
 }
 
-func (b *Bot) kickMember(p *model.Person) error {
+func  kickMember(p *model.Person) error {
 	kick := &tgbotapi.KickChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: p.ChatID,
@@ -234,11 +234,11 @@ func (b *Bot) kickMember(p *model.Person) error {
 		},
 	}
 
-	resp, err := b.KickChatMember(*kick)
+	resp, err := bot.KickChatMember(*kick)
 	if err != nil {
-		b.log.Warnf("%#v : [%s]", resp, err.Error())
+		log.Warnf("%#v : [%s]", resp, err.Error())
 	} else {
-		b.log.Infof("Succeccfully kicked: ID:[%d]", kick.UserID)
+		log.Infof("Succeccfully kicked: ID:[%d]", kick.UserID)
 	}
 	return nil
 }

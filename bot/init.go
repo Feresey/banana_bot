@@ -2,7 +2,6 @@ package bot
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,16 +14,24 @@ import (
 	"github.com/Feresey/banana_bot/model"
 )
 
-// Bot : my telegram bot
-type Bot struct {
-	*tgbotapi.BotAPI
-	log     *logging.Logger
-	debug   bool
-	maxWarn int
+var (
+	bot     *tgbotapi.BotAPI
+	log     = logging.NewLogger("Bot")
+	debug   = false
+	maxWarn = 5
+)
+
+func updateAdmins() {
+	updateAllAdmins()
+	for range time.Tick(time.Hour) {
+		updateAllAdmins()
+	}
 }
 
-// NewBot : creates a new bot with token
-func NewBot(token string, debug bool) *Bot {
+// Start : initialize a bot
+func Start(token string, d bool) error {
+	debug = d
+
 	b, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		if token == "" {
@@ -37,35 +44,16 @@ func NewBot(token string, debug bool) *Bot {
 	if err != nil {
 		panic(err)
 	}
+	bot = b
+	log.Infof("Successfully connected on %s", bot.Self.UserName)
 
-	bot := &Bot{
-		BotAPI:  b,
-		debug:   debug,
-		log:     logging.NewLogger("Bot"),
-		maxWarn: 5,
-	}
-
-	bot.initUpdateAdmins()
-
-	return bot
-}
-
-func (b *Bot) initUpdateAdmins() {
-	go func() {
-		b.updateAllAdmins()
-		for range time.Tick(time.Hour) {
-			b.updateAllAdmins()
-		}
-	}()
-}
-
-// Start : initialize a bot
-func (b *Bot) Start() error {
-	err := db.Connect(b.log)
+	err = db.Connect(log)
 	if err != nil {
 		return err
 	}
+	log.Info("DB connected")
 
+	go updateAdmins()
 	go func() {
 		sigint := make(chan os.Signal, 1)
 
@@ -74,27 +62,26 @@ func (b *Bot) Start() error {
 
 		<-sigint
 		db.Shutdown()
-		b.log.Info("\nBot closed." + time.Now().String())
+		log.Info("Bot closed." + time.Now().Format(time.Stamp))
 		os.Exit(0)
 	}()
 
-	b.log.Infof("Successfully connected on %s", b.Self.UserName)
 	return nil
 }
 
 // KeepOn : start messaging and block main function
-func (b *Bot) KeepOn() {
+func KeepOn() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	updates, err := b.GetUpdatesChan(u)
+	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		b.log.Fatal("Unable get updates", err)
+		log.Fatal("Unable get updates", err)
 	}
 
 	for update := range updates {
 		msg := update.Message
 		if msg != nil {
-			go b.processMessage(&model.Message{Message: msg})
+			go processMessage(&model.Message{Message: msg})
 		}
 	}
 }

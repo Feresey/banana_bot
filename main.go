@@ -11,9 +11,8 @@ func main() {
 	debug := flag.Bool("debug", false, "print all message data")
 	flag.Parse()
 	token := os.Getenv("TOKEN")
-	bot := bot.NewBot(token, *debug)
 
-	if err := bot.Start(); err == nil {
+	if err := bot.Start(token, *debug); err == nil {
 		bot.KeepOn()
 	} else {
 		panic(err)
