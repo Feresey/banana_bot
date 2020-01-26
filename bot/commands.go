@@ -9,7 +9,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func  processMessage(msg *model.Message) {
+func processMessage(msg *model.Message) {
 	// предполагая что у меня руки из жопы я оставлю это
 	defer func() {
 		if err := recover(); err != nil {
@@ -24,6 +24,8 @@ func  processMessage(msg *model.Message) {
 		log.Infof("[%s] %s", msg.From.UserName, msg.Text)
 	}
 
+	go addNewChatIfNeeded(msg.Chat.ID)
+
 	switch msg.Chat.Type {
 	case "private":
 		if err := privateMessage(msg); err != nil {
@@ -36,7 +38,7 @@ func  processMessage(msg *model.Message) {
 	}
 }
 
-func  groupMessage(msg *model.Message) error {
+func groupMessage(msg *model.Message) error {
 	cmd := msg.Command()
 	if cmd == "" {
 		return nil
@@ -57,7 +59,7 @@ func  groupMessage(msg *model.Message) error {
 	return processPublicActions(msg)
 }
 
-func  processPublicActions(msg *model.Message) error {
+func processPublicActions(msg *model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -78,7 +80,7 @@ func  processPublicActions(msg *model.Message) error {
 	return nil
 }
 
-func  processAdminActions(msg *model.Message) error {
+func processAdminActions(msg *model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -105,7 +107,7 @@ func  processAdminActions(msg *model.Message) error {
 	return nil
 }
 
-func  report(msg *model.Message) (*model.Reply, error) {
+func report(msg *model.Message) (*model.Reply, error) {
 	subscribed, err := db.Report(msg.Chat.ID)
 	if err != nil {
 		return nil, err
@@ -127,7 +129,7 @@ func  report(msg *model.Message) (*model.Reply, error) {
 	return reply, nil
 }
 
-func  ban(msg *model.Message) (*model.Reply, error) {
+func ban(msg *model.Message) (*model.Reply, error) {
 	reply := model.NewReply(msg)
 	if msg.ReplyToMessage == nil {
 		reply.Text = "Надо использовать команду ответом на сообщение"
@@ -149,7 +151,7 @@ func  ban(msg *model.Message) (*model.Reply, error) {
 	return reply, err
 }
 
-func  warn(msg *model.Message, add bool) (*model.Reply, error) {
+func warn(msg *model.Message, add bool) (*model.Reply, error) {
 	reply := model.NewReply(msg)
 
 	if msg.ReplyToMessage == nil {
@@ -191,7 +193,7 @@ func  warn(msg *model.Message, add bool) (*model.Reply, error) {
 	return reply, err
 }
 
-func  privateMessage(msg *model.Message) error {
+func privateMessage(msg *model.Message) error {
 	cmd := msg.Command()
 	// GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
 	switch cmd {
@@ -226,7 +228,7 @@ func protect(p *model.Person, id int) *model.Reply {
 	return reply
 }
 
-func  kickMember(p *model.Person) error {
+func kickMember(p *model.Person) error {
 	kick := &tgbotapi.KickChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: p.ChatID,

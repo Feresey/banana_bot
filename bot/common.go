@@ -35,6 +35,22 @@ func isAdmin(msg *model.Message) bool {
 	return member.IsAdministrator() || member.IsCreator()
 }
 
+func addNewChatIfNeeded(chatid int64) {
+	list, err := db.GetChatList()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	for _, val := range list {
+		if val == chatid {
+			return
+		}
+	}
+
+	updateAdminsFromChat(chatid)
+}
+
 func updateAdminsFromChat(chatid int64) []int {
 	members, err := bot.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: chatid})
 	if err != nil {
