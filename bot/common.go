@@ -3,6 +3,7 @@ package bot
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
+	"github.com/Feresey/banana_bot/db"
 	"github.com/Feresey/banana_bot/model"
 )
 
@@ -22,66 +23,45 @@ func (b *Bot) isPublicMethod(cmd string) bool {
 	}
 }
 
-func (b *Bot) getAdmins(id int64) ([]tgbotapi.ChatMember, bool) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	members, ok := b.adminList[id]
-
-	return members, ok
-}
-
-func (b *Bot) updateAdmins() {
-	b.mu.RLock()
-	admins := []int64{}
-	for chatID := range b.adminList {
-		admins = append(admins, chatID)
-	}
-	b.mu.RUnlock()
-
-	for _, chatID := range admins {
-		b.updateAdminsFromChat(chatID)
-	}
-}
-
-func (b *Bot) updateAdminsFromChat(id int64) []tgbotapi.ChatMember {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	chatAdmins, err := b.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: id})
-	if err != nil {
-		b.log.Error("Unable get chat admins", err)
-	}
-	b.adminList[id] = chatAdmins
-	return chatAdmins
-}
-
 func (b *Bot) isAdmin(msg *model.Message) bool {
 	if msg.Chat.IsPrivate() {
 		return true
 	}
 
-	chatID := msg.Chat.ID
-	admins, ok := b.getAdmins(chatID)
-	if !ok {
-		admins = b.updateAdminsFromChat(chatID)
+	member, err := b.GetChatMember(tgbotapi.ChatConfigWithUser{ChatID: msg.Chat.ID})
+	if err != nil {
+		b.log.Error("Unable get info about user", err)
 	}
-
-	userID := msg.From.ID
-	for _, pipl := range admins {
-		if pipl.User.ID == userID {
-			return true
-		}
-	}
-	return false
+	return member.IsAdministrator() || member.IsCreator()
 }
 
-// func joke(userID int) string {
-// 	switch userID {
-// 	case 425496698:
-// 		return "Я не могу пойти против создателя. Ave Banana!"
-// 	case 1066353768:
-// 		return "Бан бану рознь."
-// 	default:
-// 		return ""
-// 	}
-// }
+func (b *Bot) updateAdminsFromChat(chatid int64) []int {
+	members, err := b.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: chatid})
+	if err != nil {
+		b.log.Warn("Unable update admins", err)
+		return nil
+	}
+
+	ids := make([]int, 0, len(members))
+	for idx := range members {
+		ids = append(ids, members[idx].User.ID)
+	}
+
+	err = db.SetAdmins(chatid, ids)
+	if err != nil {
+		b.log.Error("Unable upate admins", err)
+	}
+	return ids
+}
+
+func (b *Bot) updateAllAdmins() {
+	chats, err := db.GetChatList()
+	if err != nil {
+		b.log.Error(err)
+		return
+	}
+
+	for _, val := range chats {
+		b.updateAdminsFromChat(val)
+	}
+}

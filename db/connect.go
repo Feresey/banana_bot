@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	db      *sql.DB
-	log     *logging.Logger
+	db  *sql.DB
+	log *logging.Logger
 
 	warn   string = "warn"
-	report string = "sub"
+	admins string = "admins"
 )
 
 // Connect :

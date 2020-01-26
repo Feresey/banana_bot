@@ -110,7 +110,7 @@ func (b *Bot) report(msg *model.Message) (*model.Reply, error) {
 		reply := model.Reply{
 			MessageConfig: &tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{
-					ChatID: val,
+					ChatID: int64(val),
 				},
 			},
 		}
@@ -135,7 +135,7 @@ func (b *Bot) ban(msg *model.Message) (*model.Reply, error) {
 		UserID: user.ID,
 	}
 
-	if r := protect(person); r != nil {
+	if r := protect(person, msg.From.ID); r != nil {
 		return r, nil
 	}
 
@@ -162,7 +162,7 @@ func (b *Bot) warn(msg *model.Message, add bool) (*model.Reply, error) {
 		UserID: user.ID,
 	}
 
-	if r := protect(person); r != nil {
+	if r := protect(person, msg.From.ID); r != nil {
 		return r, nil
 	}
 
@@ -199,7 +199,7 @@ func (b *Bot) privateMessage(msg *model.Message) error {
 	return nil
 }
 
-func protect(p *model.Person) *model.Reply {
+func protect(p *model.Person, id int) *model.Reply {
 	reply := &model.Reply{
 		MessageConfig: &tgbotapi.MessageConfig{
 			BaseChat: tgbotapi.BaseChat{
@@ -207,11 +207,14 @@ func protect(p *model.Person) *model.Reply {
 			},
 		},
 	}
+
 	switch p.UserID {
 	case 425496698:
 		reply.Text = "Я не могу пойти против создателя. Ave Banana!"
 	case 1066353768:
 		reply.Text = "Бан бану рознь."
+	case id:
+		reply.Text = "Мазохизм не приветствуется."
 	default:
 		return nil
 	}

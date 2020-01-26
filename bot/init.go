@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -22,10 +21,6 @@ type Bot struct {
 	log     *logging.Logger
 	debug   bool
 	maxWarn int
-
-	// map[chatID][]userID
-	adminList map[int64][]tgbotapi.ChatMember
-	mu        *sync.RWMutex
 }
 
 // NewBot : creates a new bot with token
@@ -44,12 +39,10 @@ func NewBot(token string, debug bool) *Bot {
 	}
 
 	bot := &Bot{
-		BotAPI:    b,
-		debug:     debug,
-		log:       logging.NewLogger("Bot"),
-		adminList: make(map[int64][]tgbotapi.ChatMember),
-		mu:        &sync.RWMutex{},
-		maxWarn:   5,
+		BotAPI:  b,
+		debug:   debug,
+		log:     logging.NewLogger("Bot"),
+		maxWarn: 5,
 	}
 
 	bot.initUpdateAdmins()
@@ -59,8 +52,9 @@ func NewBot(token string, debug bool) *Bot {
 
 func (b *Bot) initUpdateAdmins() {
 	go func() {
+		b.updateAllAdmins()
 		for range time.Tick(time.Hour) {
-			b.updateAdmins()
+			b.updateAllAdmins()
 		}
 	}()
 }

@@ -11,6 +11,7 @@ import (
 
 type Logger struct {
 	parts string
+	Quite bool
 }
 
 var (
@@ -42,6 +43,9 @@ func (l *Logger) Child(part ...string) *Logger {
 func (l *Logger) Info(args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "INFO:" + fmt.Sprintln(args...))
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -49,6 +53,9 @@ func (l *Logger) Info(args ...interface{}) {
 func (l *Logger) Infof(format string, args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "INFO:" + fmt.Sprintf(format, args...) + "\n")
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -56,6 +63,9 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 func (l *Logger) Warn(args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "WARNING:" + fmt.Sprintln(args...))
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -63,6 +73,9 @@ func (l *Logger) Warn(args ...interface{}) {
 func (l *Logger) Warnf(format string, args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "WARNING:" + fmt.Sprintf(format, args...) + "\n")
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -70,6 +83,9 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 func (l *Logger) Error(args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "ERROR:" + fmt.Sprintln(args...))
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -77,6 +93,9 @@ func (l *Logger) Error(args ...interface{}) {
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "ERROR:" + fmt.Sprintf(format, args...) + "\n")
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -84,6 +103,9 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 func (l *Logger) Fatal(args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "FATAL:" + fmt.Sprintln(args...))
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -92,6 +114,9 @@ func (l *Logger) Fatal(args ...interface{}) {
 func (l *Logger) Fatalf(format string, args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "FATAL:" + fmt.Sprintf(format, args...) + "\n")
 	_, _ = LogFile.Write(msg)
 	_, _ = os.Stdout.Write(msg)
@@ -100,6 +125,9 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 func (l *Logger) Panic(args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "PANIC:" + fmt.Sprintln(args...))
 	_, _ = LogFile.Write(msg)
 	panic(string(msg))
@@ -107,6 +135,9 @@ func (l *Logger) Panic(args ...interface{}) {
 func (l *Logger) Panicf(format string, args ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
+	if l.Quite {
+		return
+	}
 	msg := []byte(l.parts + "PANIC:" + fmt.Sprintf(format, args...) + "\n")
 	_, _ = LogFile.Write(msg)
 	panic(string(msg))
