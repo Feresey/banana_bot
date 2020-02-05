@@ -2,8 +2,14 @@
 
 - [ ] delete messages when kick
 
-- [ ] write warn to database && blacklist && only admins || private && kick when >= 5 && timeout?
+- [x] write warn to database
 
-- [ ] подписка в личке
+- [ ] blacklist. Хер знает что я под этим подразумевал
+
+- [x] kick when >= 5
+
+- [x] выгорание варнов после промежутка времени?
+
+- [ ] подписка в личке. Может инлайн режим? Или в пизду личку и подписываться в чате (что логичнее).
 
 - [x] обновление базы админов при сообщении из группы

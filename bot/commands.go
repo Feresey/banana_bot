@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Feresey/banana_bot/db"
 	"github.com/Feresey/banana_bot/model"
@@ -196,12 +197,49 @@ func warn(msg *model.Message, add bool) (*model.Reply, error) {
 func privateMessage(msg *model.Message) error {
 	cmd := msg.Command()
 	// GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
+	reply := model.NewReply(msg)
 	switch cmd {
 	case "start":
-		reply := model.NewReply(msg)
 		reply.Text = "Приветствую, кожаный мешок"
 		sendMsg(reply)
+		time.Sleep(time.Second)
+
+		fallthrough
 	default:
+		type chat struct {
+			chatID   int64
+			chatName string
+		}
+		var (
+			chats []chat
+			done  = make(chan struct{})
+		)
+
+		reply.Text = "Я знаю в каких чатах ты админ."
+		sendMsg(reply)
+
+		go func() {
+			c, err := db.GetChatsForAdmin(msg.From.ID)
+			if err != nil {
+				log.Error(err)
+			}
+
+			for _, val := range c {
+				ch, err := bot.GetChat(msg.Chat.ChatConfig())
+				if err != nil {
+					log.Warn("Unable get chat", err)
+				}
+				chats = append(chats, chat{chatID: val, chatName: ch.Title})
+			}
+
+			done <- struct{}{}
+		}()
+		time.Sleep(time.Second)
+
+		<-done
+		reply.Text = ""
+		sendMsg(reply)
+		time.Sleep(time.Second)
 	}
 	return nil
 }
