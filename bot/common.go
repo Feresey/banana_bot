@@ -8,22 +8,22 @@ import (
 )
 
 func sendMsg(msg tgbotapi.Chattable) {
-	_, err := bot.Send(msg)
+	resp, err := bot.Send(msg)
 	if err != nil {
-		log.Error("Unable to send message:", err)
+		log.Errorf("Unable to send message: %s\n %#v", err, resp)
 	}
 }
 
 func isPublicMethod(cmd string) bool {
 	switch cmd {
-	case "report", "":
+	case "report", "subscribe", "unsubscribe", "":
 		return true
 	default:
 		return false
 	}
 }
 
-func isAdmin(msg *model.Message) bool {
+func isAdmin(msg model.Message) bool {
 	if msg.Chat.IsPrivate() {
 		return true
 	}

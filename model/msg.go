@@ -7,7 +7,7 @@ import (
 type (
 	// Reply : set chat id from message
 	Reply struct {
-		*tgbotapi.MessageConfig
+		tgbotapi.MessageConfig
 	}
 	// Message : my methods
 	Message struct {
@@ -16,9 +16,9 @@ type (
 )
 
 // NewReply : create reply from message
-func NewReply(msg *Message) *Reply {
+func NewReply(msg Message) *Reply {
 	return &Reply{
-		&tgbotapi.MessageConfig{
+		tgbotapi.MessageConfig{
 			BaseChat: tgbotapi.BaseChat{
 				ChatID: msg.Chat.ID,
 			},
@@ -27,6 +27,6 @@ func NewReply(msg *Message) *Reply {
 }
 
 // Reply : set Parent message
-func (M *Reply) Reply(m *Message) {
+func (M *Reply) Reply(m Message) {
 	M.ReplyToMessageID = m.MessageID
 }

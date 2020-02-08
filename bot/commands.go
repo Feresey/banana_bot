@@ -10,7 +10,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func processMessage(msg *model.Message) {
+func processMessage(msg model.Message) {
 	// предполагая что у меня руки из жопы я оставлю это
 	defer func() {
 		if err := recover(); err != nil {
@@ -39,7 +39,7 @@ func processMessage(msg *model.Message) {
 	}
 }
 
-func groupMessage(msg *model.Message) error {
+func groupMessage(msg model.Message) error {
 	cmd := msg.Command()
 	if cmd == "" {
 		return nil
@@ -60,7 +60,7 @@ func groupMessage(msg *model.Message) error {
 	return processPublicActions(msg)
 }
 
-func processPublicActions(msg *model.Message) error {
+func processPublicActions(msg model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -70,6 +70,8 @@ func processPublicActions(msg *model.Message) error {
 	switch cmd {
 	case "report":
 		reply, err = report(msg)
+	case "subscribe":
+	case "unsubscribe":
 	}
 	if err != nil {
 		return err
@@ -81,7 +83,7 @@ func processPublicActions(msg *model.Message) error {
 	return nil
 }
 
-func processAdminActions(msg *model.Message) error {
+func processAdminActions(msg model.Message) error {
 	var (
 		cmd   = msg.Command()
 		reply *model.Reply
@@ -89,8 +91,6 @@ func processAdminActions(msg *model.Message) error {
 	)
 
 	switch cmd {
-	case "report":
-		reply, err = report(msg)
 	case "ban":
 		reply, err = ban(msg)
 	case "warn":
@@ -108,7 +108,7 @@ func processAdminActions(msg *model.Message) error {
 	return nil
 }
 
-func report(msg *model.Message) (*model.Reply, error) {
+func report(msg model.Message) (*model.Reply, error) {
 	subscribed, err := db.Report(msg.Chat.ID)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func report(msg *model.Message) (*model.Reply, error) {
 
 	for _, val := range subscribed {
 		reply := model.Reply{
-			MessageConfig: &tgbotapi.MessageConfig{
+			MessageConfig: tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: int64(val),
 				},
@@ -130,7 +130,7 @@ func report(msg *model.Message) (*model.Reply, error) {
 	return reply, nil
 }
 
-func ban(msg *model.Message) (*model.Reply, error) {
+func ban(msg model.Message) (*model.Reply, error) {
 	reply := model.NewReply(msg)
 	if msg.ReplyToMessage == nil {
 		reply.Text = "Надо использовать команду ответом на сообщение"
@@ -152,8 +152,9 @@ func ban(msg *model.Message) (*model.Reply, error) {
 	return reply, err
 }
 
-func warn(msg *model.Message, add bool) (*model.Reply, error) {
+func warn(msg model.Message, add bool) (*model.Reply, error) {
 	reply := model.NewReply(msg)
+	defer bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
 
 	if msg.ReplyToMessage == nil {
 		if add {
@@ -194,18 +195,12 @@ func warn(msg *model.Message, add bool) (*model.Reply, error) {
 	return reply, err
 }
 
-func privateMessage(msg *model.Message) error {
+func privateMessage(msg model.Message) error {
 	cmd := msg.Command()
 	// GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
 	reply := model.NewReply(msg)
 	switch cmd {
 	case "start":
-		reply.Text = "Приветствую, кожаный мешок"
-		sendMsg(reply)
-		time.Sleep(time.Second)
-
-		fallthrough
-	default:
 		type chat struct {
 			chatID   int64
 			chatName string
@@ -214,9 +209,6 @@ func privateMessage(msg *model.Message) error {
 			chats []chat
 			done  = make(chan struct{})
 		)
-
-		reply.Text = "Я знаю в каких чатах ты админ."
-		sendMsg(reply)
 
 		go func() {
 			c, err := db.GetChatsForAdmin(msg.From.ID)
@@ -234,19 +226,29 @@ func privateMessage(msg *model.Message) error {
 
 			done <- struct{}{}
 		}()
-		time.Sleep(time.Second)
 
-		<-done
-		reply.Text = ""
+		reply.Text = "Приветствую, кожаный мешок"
 		sendMsg(reply)
 		time.Sleep(time.Second)
+
+		reply.Text = "Я буду отсылать тебе сообщения о репортах."
+		sendMsg(reply)
+		time.Sleep(time.Second)
+
+		reply.Text = "Если тебе надоест этот \"спам\", то просто удали чат со мной (всё гениальное просто, да)."
+		sendMsg(reply)
+		time.Sleep(time.Second)
+
+	case "stop":
+		reply.Text = "Прости прощай!"
+		sendMsg(reply)
 	}
 	return nil
 }
 
 func protect(p *model.Person, id int) *model.Reply {
 	reply := &model.Reply{
-		MessageConfig: &tgbotapi.MessageConfig{
+		MessageConfig: tgbotapi.MessageConfig{
 			BaseChat: tgbotapi.BaseChat{
 				ChatID: p.ChatID,
 			},
@@ -263,6 +265,7 @@ func protect(p *model.Person, id int) *model.Reply {
 	default:
 		return nil
 	}
+
 	return reply
 }
 

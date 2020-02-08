@@ -81,7 +81,7 @@ func KeepOn() {
 	for update := range updates {
 		msg := update.Message
 		if msg != nil {
-			go processMessage(&model.Message{Message: msg})
+			go processMessage(model.Message{Message: msg})
 		}
 	}
 }
