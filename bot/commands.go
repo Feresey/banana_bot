@@ -67,12 +67,10 @@ func processPublicActions(msg model.Message) error {
 
 	defer func() {
 		if del {
-			resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+			_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
 			if err != nil {
 				log.Error(err)
 			}
-
-			log.Infof("%#v", resp)
 		}
 	}()
 
@@ -106,12 +104,10 @@ func processAdminActions(msg model.Message) error {
 
 	defer func() {
 		if del {
-			resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+			_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
 			if err != nil {
 				log.Error(err)
 			}
-
-			log.Infof("%#v", resp)
 		}
 	}()
 
@@ -268,7 +264,6 @@ func privateMessage(msg model.Message) error {
 
 		reply.Text = "Если тебе надоест этот \"спам\", то просто удали чат со мной (всё гениальное просто, да)."
 		sendMsg(reply)
-		time.Sleep(time.Second)
 
 	case "stop":
 		reply.Text = "Прости прощай!"
