@@ -1,5 +1,5 @@
 all: bin
-	go build -v -o ./bin/ 
+	go build -v -o ./bin/  ./cmd/...
 	
 bin:
 	mkdir bin
