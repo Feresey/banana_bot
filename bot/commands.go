@@ -16,12 +16,6 @@ func processMessage(msg model.Message) {
 		if err := recover(); err != nil {
 			log.Error("Fall in panic", err)
 		}
-		resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		log.Infof("%#v", resp)
 	}()
 
 	if debug {
@@ -48,6 +42,15 @@ func groupMessage(msg model.Message) error {
 	if cmd == "" {
 		return nil
 	}
+
+	defer func() {
+		resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+		if err != nil {
+			log.Error(err)
+		}
+
+		log.Infof("%#v", resp)
+	}()
 
 	isPublic := isPublicMethod(cmd)
 	isAdmin := isAdmin(msg)
