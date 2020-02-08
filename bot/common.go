@@ -3,7 +3,6 @@ package bot
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
-	"github.com/Feresey/banana_bot/db"
 	"github.com/Feresey/banana_bot/model"
 )
 
@@ -35,49 +34,19 @@ func isAdmin(msg model.Message) bool {
 	return member.IsAdministrator() || member.IsCreator()
 }
 
-func addNewChatIfNeeded(chatid int64) {
-	list, err := db.GetChatList()
+func kickMember(p *model.Person) error {
+	kick := &tgbotapi.KickChatMemberConfig{
+		ChatMemberConfig: tgbotapi.ChatMemberConfig{
+			ChatID: p.ChatID,
+			UserID: p.UserID,
+		},
+	}
+
+	resp, err := bot.KickChatMember(*kick)
 	if err != nil {
-		log.Error(err)
-		return
+		log.Warnf("%#v : [%s]", resp, err.Error())
+	} else {
+		log.Infof("Succeccfully kicked: ID:[%d]", kick.UserID)
 	}
-
-	for _, val := range list {
-		if val == chatid {
-			return
-		}
-	}
-
-	updateAdminsFromChat(chatid)
-}
-
-func updateAdminsFromChat(chatid int64) []int {
-	members, err := bot.GetChatAdministrators(tgbotapi.ChatConfig{ChatID: chatid})
-	if err != nil {
-		log.Warn("Unable update admins", err)
-		return nil
-	}
-
-	ids := make([]int, 0, len(members))
-	for idx := range members {
-		ids = append(ids, members[idx].User.ID)
-	}
-
-	err = db.SetAdmins(chatid, ids)
-	if err != nil {
-		log.Error("Unable upate admins", err)
-	}
-	return ids
-}
-
-func updateAllAdmins() {
-	chats, err := db.GetChatList()
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	for _, val := range chats {
-		updateAdminsFromChat(val)
-	}
+	return nil
 }

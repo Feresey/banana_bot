@@ -23,7 +23,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestWarn(t *testing.T) {
-	_, _ = db.Exec(`delete from warn`)
+	_, _ = db.Exec("delete from " + subscriptions)
+
 	type args struct {
 		person *model.Person
 		add    bool
@@ -61,7 +62,7 @@ func TestWarn(t *testing.T) {
 		},
 		{
 			name:      "unwarn new",
-			args:      args{person: &model.Person{ChatID: 1, UserID: 2}, add: false},
+			args:      args{person: &model.Person{ChatID: 2, UserID: 2}, add: false},
 			wantTotal: 0,
 		},
 	}
@@ -80,10 +81,11 @@ func TestWarn(t *testing.T) {
 }
 
 func TestReport(t *testing.T) {
-	_, _ = db.Exec(`delete from admins`)
+	_, _ = db.Exec("delete from " + subscriptions)
 	_, _ = db.Exec(
-		`INSERT INTO admins
-		VALUES (1,1,true),(1,2,false),(1,3,false),(1,5,true), (2,1,true),(2,2,false)`)
+		`INSERT INTO ` + subscriptions + ` (chatid, userid)
+		VALUES (1,1),(1,2),(1,3),(1,5),
+			   (2,1),(2,2)`)
 	type args struct {
 		chatID int64
 	}
@@ -96,12 +98,12 @@ func TestReport(t *testing.T) {
 		{
 			name: "one",
 			args: args{chatID: 1},
-			want: []int{1, 5},
+			want: []int{1, 2, 3, 5},
 		},
 		{
 			name: "two",
 			args: args{chatID: 2},
-			want: []int{1},
+			want: []int{1, 2},
 		},
 		{
 			name: "not exists",
@@ -123,150 +125,42 @@ func TestReport(t *testing.T) {
 	}
 }
 
-func TestGetChatList(t *testing.T) {
-	_, _ = db.Exec(`delete from admins`)
-	_, _ = db.Exec(
-		`INSERT INTO admins
-		VALUES (1,1,true),(1,2,false),(1,3,false),(1,5,true), (2,1,true),(2,2,false)`)
-	tests := []struct {
-		name    string
-		want    []int64
-		wantErr bool
-	}{
-		{
-			name: "",
-			want: []int64{1, 2},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetChatList()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChatList() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetChatList() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestSubs(t *testing.T) {
+	_, _ = db.Exec(`delete from ` + subscriptions)
 
-func TestGetAdmins(t *testing.T) {
-	_, _ = db.Exec(`delete from admins`)
-	_, _ = db.Exec(
-		`INSERT INTO admins
-		VALUES (1,1,true),(1,2,false),(1,3,false),(1,5,true), (2,1,true),(2,2,false)`)
-	type args struct {
-		chatid int64
-	}
 	tests := []struct {
 		name    string
-		args    args
-		want    []int
+		p       *model.Person
+		command func(*model.Person) error
 		wantErr bool
 	}{
 		{
-			name: "one",
-			args: args{chatid: 1},
-			want: []int{1, 2, 3, 5},
+			name:    "create new",
+			p:       &model.Person{ChatID: 1, UserID: 1},
+			command: Subscribe,
 		},
 		{
-			name: "two",
-			args: args{chatid: 2},
-			want: []int{1, 2},
+			name:    "create exists",
+			p:       &model.Person{ChatID: 1, UserID: 1},
+			command: Subscribe,
+			wantErr: true,
 		},
 		{
-			name: "nil",
-			args: args{chatid: 3},
-			want: []int{},
+			name:    "unsub exists",
+			p:       &model.Person{ChatID: 1, UserID: 1},
+			command: UnSubscribe,
+		},
+		{
+			name:    "unsub not exists",
+			p:       &model.Person{ChatID: 1, UserID: 0},
+			command: UnSubscribe,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAdmins(tt.args.chatid)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetAdmins() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetAdmins() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetChatsForAdmin(t *testing.T) {
-	_, _ = db.Exec(`delete from admins`)
-	_, _ = db.Exec(
-		`INSERT INTO admins
-		VALUES	(1,1,true),(1,2,false),(1,3,false),(1,5,true), 
-				(2,1,true),(2,2,false)`)
-	type args struct {
-		userid int
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []int64
-		wantErr bool
-	}{
-		{
-			name: "one in two",
-			args: args{userid: 1},
-			want: []int64{1, 2},
-		},
-		{
-			name: "one in one",
-			args: args{userid: 3},
-			want: []int64{1},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetChatsForAdmin(tt.args.userid)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChatsForAdmin() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetChatsForAdmin() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSetAdmins(t *testing.T) {
-	type args struct {
-		chatid int64
-		pipls  []int
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "init",
-			args: args{chatid: 1, pipls: []int{1, 2, 3}},
-		},
-		{
-			name: "add new",
-			args: args{chatid: 1, pipls: []int{1, 2, 3, 4, 5, 6}},
-		},
-		{
-			name: "remove some",
-			args: args{chatid: 1, pipls: []int{1, 3, 5, 6}},
-		},
-		{
-			name: "all new",
-			args: args{chatid: 1, pipls: []int{8, 9, 0}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := SetAdmins(tt.args.chatid, tt.args.pipls); (err != nil) != tt.wantErr {
-				t.Errorf("SetAdmins() error = %v, wantErr %v", err, tt.wantErr)
+			if err := tt.command(tt.p); (err != nil) != tt.wantErr {
+				t.Errorf("Subscribe() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

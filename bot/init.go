@@ -21,13 +21,6 @@ var (
 	maxWarn = 5
 )
 
-func updateAdmins() {
-	updateAllAdmins()
-	for range time.Tick(time.Hour) {
-		updateAllAdmins()
-	}
-}
-
 // Start : initialize a bot
 func Start(token string, d bool) error {
 	debug = d
@@ -53,7 +46,6 @@ func Start(token string, d bool) error {
 	}
 	log.Info("DB connected")
 
-	go updateAdmins()
 	go func() {
 		sigint := make(chan os.Signal, 1)
 

@@ -12,9 +12,11 @@ import (
 var (
 	db  *sql.DB
 	log *logging.Logger
+)
 
-	warn   string = "warn"
-	admins string = "admins"
+const (
+	warn          = "warn"
+	subscriptions = "sub"
 )
 
 // Connect :

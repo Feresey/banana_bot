@@ -16,6 +16,12 @@ func processMessage(msg model.Message) {
 		if err := recover(); err != nil {
 			log.Error("Fall in panic", err)
 		}
+		resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Infof("%#v", resp)
 	}()
 
 	if debug {
@@ -24,8 +30,6 @@ func processMessage(msg model.Message) {
 	} else {
 		log.Infof("[%s] %s", msg.From.UserName, msg.Text)
 	}
-
-	go addNewChatIfNeeded(msg.Chat.ID)
 
 	switch msg.Chat.Type {
 	case "private":
@@ -71,7 +75,9 @@ func processPublicActions(msg model.Message) error {
 	case "report":
 		reply, err = report(msg)
 	case "subscribe":
+		reply, err = subscribe(msg)
 	case "unsubscribe":
+		reply, err = unSubscribe(msg)
 	}
 	if err != nil {
 		return err
@@ -154,7 +160,6 @@ func ban(msg model.Message) (*model.Reply, error) {
 
 func warn(msg model.Message, add bool) (*model.Reply, error) {
 	reply := model.NewReply(msg)
-	defer bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
 
 	if msg.ReplyToMessage == nil {
 		if add {
@@ -195,6 +200,28 @@ func warn(msg model.Message, add bool) (*model.Reply, error) {
 	return reply, err
 }
 
+func subscribe(msg model.Message) (*model.Reply, error) {
+	err := db.Subscribe(&model.Person{ChatID: msg.Chat.ID, UserID: msg.From.ID})
+	if err != nil {
+		return nil, err
+	}
+
+	r := model.NewReply(msg)
+	r.Text = "Лайк, подписка"
+	return r, nil
+}
+
+func unSubscribe(msg model.Message) (*model.Reply, error) {
+	err := db.UnSubscribe(&model.Person{ChatID: msg.Chat.ID, UserID: msg.From.ID})
+	if err != nil {
+		return nil, err
+	}
+
+	r := model.NewReply(msg)
+	r.Text = "Дизлайк, отписка"
+	return r, nil
+}
+
 func privateMessage(msg model.Message) error {
 	cmd := msg.Command()
 	// GetChat(tgbotapi.ChatConfig{ChatID: msg.Chat.ID})
@@ -205,27 +232,6 @@ func privateMessage(msg model.Message) error {
 			chatID   int64
 			chatName string
 		}
-		var (
-			chats []chat
-			done  = make(chan struct{})
-		)
-
-		go func() {
-			c, err := db.GetChatsForAdmin(msg.From.ID)
-			if err != nil {
-				log.Error(err)
-			}
-
-			for _, val := range c {
-				ch, err := bot.GetChat(msg.Chat.ChatConfig())
-				if err != nil {
-					log.Warn("Unable get chat", err)
-				}
-				chats = append(chats, chat{chatID: val, chatName: ch.Title})
-			}
-
-			done <- struct{}{}
-		}()
 
 		reply.Text = "Приветствую, кожаный мешок"
 		sendMsg(reply)
@@ -267,21 +273,4 @@ func protect(p *model.Person, id int) *model.Reply {
 	}
 
 	return reply
-}
-
-func kickMember(p *model.Person) error {
-	kick := &tgbotapi.KickChatMemberConfig{
-		ChatMemberConfig: tgbotapi.ChatMemberConfig{
-			ChatID: p.ChatID,
-			UserID: p.UserID,
-		},
-	}
-
-	resp, err := bot.KickChatMember(*kick)
-	if err != nil {
-		log.Warnf("%#v : [%s]", resp, err.Error())
-	} else {
-		log.Infof("Succeccfully kicked: ID:[%d]", kick.UserID)
-	}
-	return nil
 }

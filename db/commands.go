@@ -2,9 +2,6 @@ package db
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/Feresey/banana_bot/model"
 )
@@ -17,7 +14,7 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 	}
 
 	if !exist {
-		err = createID(person, warn)
+		err = createPerson(person, warn)
 		if err != nil {
 			return
 		}
@@ -25,7 +22,7 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 
 	err = db.QueryRow(
 		`SELECT total
-		FROM warn
+		FROM `+warn+`
 		WHERE
 			chatid=$1 AND userid=$2`,
 		person.ChatID, person.UserID).
@@ -45,7 +42,7 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 	}
 
 	res, err := db.Exec(
-		`UPDATE warn
+		`UPDATE `+warn+`
 		SET total=$3 WHERE
 			chatid=$1 AND userid=$2`,
 		person.ChatID, person.UserID, total)
@@ -68,8 +65,8 @@ func Warn(person *model.Person, add bool) (total int, err error) {
 func Report(chatID int64) ([]int, error) {
 	rows, err := db.Query(
 		`SELECT userid
-		FROM `+admins+`
-		WHERE chatid=$1 AND subscribed=true`, chatID)
+		FROM `+subscriptions+`
+		WHERE chatid=$1`, chatID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,110 +81,36 @@ func Report(chatID int64) ([]int, error) {
 	return res, rows.Err()
 }
 
-// GetChatList : get ids of all chats with bot
-func GetChatList() ([]int64, error) {
-	chatsRaw, err := db.Query(
-		`SELECT DISTINCT chatid
-		FROM ` + admins)
-	if err != nil {
-		return nil, err
-	}
-
-	chat := []int64{}
-
-	for chatsRaw.Next() {
-		var tmp int64
-		_ = chatsRaw.Scan(&tmp)
-		chat = append(chat, tmp)
-	}
-
-	return chat, chatsRaw.Err()
-}
-
-// GetAdmins : get all admins from chat
-func GetAdmins(chatid int64) ([]int, error) {
-	adminsRaw, err := db.Query(
-		`SELECT userid
-		FROM `+admins+`
-	WHERE chatid=$1`, chatid)
-	if err != nil {
-		return nil, err
-	}
-
-	admins := []int{}
-
-	for adminsRaw.Next() {
-		var tmp int
-		_ = adminsRaw.Scan(&tmp)
-		admins = append(admins, tmp)
-	}
-
-	return admins, adminsRaw.Err()
-}
-
-// GetChatsForAdmin : get all chats for admin
-func GetChatsForAdmin(userid int) ([]int64, error) {
-	adminsRaw, err := db.Query(
-		`SELECT chatid
-		FROM `+admins+`
-	WHERE userid=$1`, userid)
-	if err != nil {
-		return nil, err
-	}
-
-	admins := []int64{}
-
-	for adminsRaw.Next() {
-		var tmp int64
-		_ = adminsRaw.Scan(&tmp)
-		admins = append(admins, tmp)
-	}
-
-	return admins, adminsRaw.Err()
-}
-
-// SetAdmins : get all admins from chat
-func SetAdmins(chatid int64, pipls []int) error {
-	if len(pipls) == 0 {
-		return fmt.Errorf("Fuckoff")
-	}
-	adminS := make([]string, 0, len(pipls))
-	for idx := range pipls {
-		adminS = append(adminS, strconv.Itoa(pipls[idx]))
-	}
-
-	// drop non-admins
-	_, err := db.Exec(fmt.Sprintf(
-		`DELETE FROM %s WHERE (chatid, userid) IN
-			(SELECT chatid, userid
-				FROM `+admins+` WHERE
-					chatid=$1
-					AND NOT userid IN (%s)
-			)`, admins, strings.Join(adminS, ",")),
-		chatid)
+// Subscribe : get user ids, who subscribed on reports
+func Subscribe(p *model.Person) (err error) {
+	var ok bool
+	ok, err = checkPersonExists(p, subscriptions)
 	if err != nil {
 		return err
 	}
 
-	q := fmt.Sprintf(
-		`INSERT INTO `+admins+`
-		SELECT %d, t.id as userid, false
-			FROM (VALUES (%s)) AS t(id)
-				EXCEPT SELECT $1::BIGINT, admins.userid, false
-				FROM admins
-					WHERE admins.chatid=$1::BIGINT`, chatid, strings.Join(adminS, "),("))
-	log.Info(q)
-	// insert new admins
-	res, err := db.Exec(q, chatid)
+	if ok {
+		err = errors.New("Person already subscribed")
+	} else {
+		createPerson(p, subscriptions)
+	}
+
+	return
+}
+
+// UnSubscribe : get user ids, who subscribed on reports
+func UnSubscribe(p *model.Person) (err error) {
+	var ok bool
+	ok, err = checkPersonExists(p, subscriptions)
 	if err != nil {
 		return err
 	}
 
-	total, err := res.RowsAffected()
-	if err != nil {
-		return err
+	if !ok {
+		err = errors.New("Person not exists")
+	} else {
+		deletePerson(p, subscriptions)
 	}
 
-	log.Infof("%d admins added into %d", total, chatid)
-	return nil
+	return
 }
