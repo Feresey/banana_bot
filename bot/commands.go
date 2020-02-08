@@ -150,7 +150,10 @@ func report(msg model.Message) (*model.Reply, error) {
 				Text: "Вас призывают в чат " + msg.Chat.Title,
 			},
 		}
-		sendMsg(reply)
+		_, err = bot.Send(reply)
+		if err != nil {
+			log.Info("Unable send report to ", msg.From)
+		}
 	}
 
 	reply := model.NewReply(msg)
