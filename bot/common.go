@@ -15,7 +15,7 @@ func sendMsg(msg tgbotapi.Chattable) {
 
 func isPublicMethod(cmd string) bool {
 	switch cmd {
-	case "report", "subscribe", "unsubscribe", "":
+	case "report", "subscribe", "unsubscribe":
 		return true
 	default:
 		return false

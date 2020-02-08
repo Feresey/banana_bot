@@ -38,21 +38,11 @@ func processMessage(msg model.Message) {
 }
 
 func groupMessage(msg model.Message) error {
-	cmd := msg.Command()
-	if cmd == "" {
+	if !msg.IsCommand() {
 		return nil
 	}
 
-	defer func() {
-		resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
-		if err != nil {
-			log.Error(err)
-		}
-
-		log.Infof("%#v", resp)
-	}()
-
-	isPublic := isPublicMethod(cmd)
+	isPublic := isPublicMethod(msg.Command())
 	isAdmin := isAdmin(msg)
 
 	if !isPublic {
@@ -72,7 +62,19 @@ func processPublicActions(msg model.Message) error {
 		cmd   = msg.Command()
 		reply *model.Reply
 		err   error
+		del   = true
 	)
+
+	defer func() {
+		if del {
+			resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+			if err != nil {
+				log.Error(err)
+			}
+
+			log.Infof("%#v", resp)
+		}
+	}()
 
 	switch cmd {
 	case "report":
@@ -81,6 +83,8 @@ func processPublicActions(msg model.Message) error {
 		reply, err = subscribe(msg)
 	case "unsubscribe":
 		reply, err = unSubscribe(msg)
+	default:
+		del = false
 	}
 	if err != nil {
 		return err
@@ -97,7 +101,19 @@ func processAdminActions(msg model.Message) error {
 		cmd   = msg.Command()
 		reply *model.Reply
 		err   error
+		del   = true
 	)
+
+	defer func() {
+		if del {
+			resp, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+			if err != nil {
+				log.Error(err)
+			}
+
+			log.Infof("%#v", resp)
+		}
+	}()
 
 	switch cmd {
 	case "ban":
@@ -106,6 +122,8 @@ func processAdminActions(msg model.Message) error {
 		reply, err = warn(msg, true)
 	case "unwarn":
 		reply, err = warn(msg, false)
+	default:
+		del = false
 	}
 	if err != nil {
 		return err
