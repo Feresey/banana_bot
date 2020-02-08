@@ -126,6 +126,7 @@ func report(msg model.Message) (*model.Reply, error) {
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: int64(val),
 				},
+				Text: "Вас призывают в чат " + msg.Chat.Title,
 			},
 		}
 		sendMsg(reply)
