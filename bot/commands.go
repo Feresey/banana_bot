@@ -114,6 +114,8 @@ func processAdminActions(msg model.Message) error {
 	switch cmd {
 	case "ban":
 		reply, err = ban(msg)
+	case "kick":
+		reply, err = kick(msg)
 	case "warn":
 		reply, err = warn(msg, true)
 	case "unwarn":
@@ -174,8 +176,30 @@ func ban(msg model.Message) (*model.Reply, error) {
 		return r, nil
 	}
 
-	err := kickMember(person)
+	err := kickMember(person, forever)
 	reply.Text = "F"
+	return reply, err
+}
+
+func kick(msg model.Message) (*model.Reply, error) {
+	reply := model.NewReply(msg)
+	if msg.ReplyToMessage == nil {
+		reply.Text = "Надо использовать команду ответом на сообщение"
+		return reply, nil
+	}
+	user := msg.ReplyToMessage.From
+
+	person := &model.Person{
+		ChatID: msg.Chat.ID,
+		UserID: user.ID,
+	}
+
+	if r := protect(person, msg.From.ID); r != nil {
+		return r, nil
+	}
+
+	err := kickMember(person, day)
+	reply.Text = fmt.Sprintf("@%s забанен на день", user.UserName)
 	return reply, err
 }
 
@@ -216,7 +240,7 @@ func warn(msg model.Message, add bool) (*model.Reply, error) {
 	}
 
 	if total > maxWarn {
-		err = kickMember(person)
+		err = kickMember(person, forever)
 	}
 	return reply, err
 }
