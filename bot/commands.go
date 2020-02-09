@@ -65,15 +65,6 @@ func processPublicActions(msg model.Message) error {
 		del   = true
 	)
 
-	defer func() {
-		if del {
-			_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
-			if err != nil {
-				log.Error(err)
-			}
-		}
-	}()
-
 	switch cmd {
 	case "report":
 		reply, err = report(msg)
@@ -86,6 +77,13 @@ func processPublicActions(msg model.Message) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	if del {
+		_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	if reply != nil {
@@ -102,15 +100,6 @@ func processAdminActions(msg model.Message) error {
 		del   = true
 	)
 
-	defer func() {
-		if del {
-			_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
-			if err != nil {
-				log.Error(err)
-			}
-		}
-	}()
-
 	switch cmd {
 	case "ban":
 		reply, err = ban(msg)
@@ -125,6 +114,13 @@ func processAdminActions(msg model.Message) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	if del {
+		_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: msg.Chat.ID, MessageID: msg.MessageID})
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	if reply != nil {
