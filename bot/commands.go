@@ -22,7 +22,7 @@ func processMessage(msg model.Message) {
 		data, _ := json.MarshalIndent(msg, "", "\t")
 		log.Info(string(data))
 	} else {
-		log.Infof("[%s] %s", msg.From.UserName, msg.Text)
+		log.Infof("{%s}[%s] %s", msg.Chat.Title, msg.From.UserName, msg.Text)
 	}
 
 	switch msg.Chat.Type {
