@@ -1,6 +1,6 @@
 .PHONY:all
 all: vet bin
-	go build -v -o ./bin/  ./cmd/...
+	go build -v -o ./bin/ ./cmd/...
 
 .PHONY:vet
 vet:
