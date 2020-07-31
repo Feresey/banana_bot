@@ -1,4 +1,4 @@
-package format
+package bot
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 
 var funcs = template.FuncMap{
 	"formatUser": func(user tgbotapi.User) string {
-		return fmt.Sprintf("[%s](tg://user?id=%d)", user.UserName, user.ID)
+		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
 	},
 }
 
@@ -42,15 +42,15 @@ func AddBefore(before BeforeFunc) formatterOption {
 }
 
 type Formatter struct {
-	api      *tgbotapi.BotAPI
+	api      TelegramAPI
 	baseChat tgbotapi.BaseChat
 
 	after  AfterFunc
 	before BeforeFunc
 }
 
-func New(api *tgbotapi.BotAPI, baseChat tgbotapi.BaseChat, opts ...formatterOption) *Formatter {
-	f := &Formatter{api: api}
+func NewFormatter(api TelegramAPI, baseChat tgbotapi.BaseChat, opts ...formatterOption) *Formatter {
+	f := &Formatter{api: api, baseChat: baseChat}
 	for _, opt := range opts {
 		opt(f)
 	}

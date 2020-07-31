@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Feresey/banana_bot/internal/format"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.uber.org/zap"
 )
@@ -48,6 +47,30 @@ func (b *Bot) processMessage(msg tgbotapi.Message) error {
 	return ErrWTF
 }
 
+func (b *Bot) isPublicMethod(cmd string) bool {
+	switch cmd {
+	case "report", "subscribe", "unsubscribe":
+		return true
+	default:
+		return false
+	}
+}
+
+func (b *Bot) isAdmin(msg tgbotapi.Message) bool {
+	if msg.Chat.IsPrivate() {
+		return true
+	}
+	member, err := b.api.GetChatMember(tgbotapi.ChatConfigWithUser{
+		ChatID: msg.Chat.ID,
+		UserID: msg.From.ID,
+	})
+	if err != nil {
+		b.log.Error("Unable get info about user", zap.Error(err))
+	}
+	// safe to call on default value
+	return member.IsAdministrator() || member.IsCreator()
+}
+
 func (b *Bot) groupMessage(msg tgbotapi.Message) (del bool, err error) {
 	if !msg.IsCommand() {
 		// Обычное сообщение, лог ненужон
@@ -59,7 +82,7 @@ func (b *Bot) groupMessage(msg tgbotapi.Message) (del bool, err error) {
 
 	if !b.isPublicMethod(msg.Command()) {
 		if !b.isAdmin(msg) {
-			return false, b.ReplyOne(msg, format.NeedFormat{Message: "Только админам можно"})
+			return false, b.ReplyOne(msg, NeedFormat{Message: "Только админам можно"})
 		}
 		return false, b.processAdminActions(ctx, msg)
 	}

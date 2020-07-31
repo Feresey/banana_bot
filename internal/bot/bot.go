@@ -20,7 +20,20 @@ type Config struct {
 	MaxWarn       int64
 	DBConfig      db.Config
 
-	ApiTimeout time.Duration
+	ApiTimeout    time.Duration
+	ResponseSleep time.Duration
+}
+
+//go:generate go run github.com/golang/mock/mockgen -destination mock.go -package bot . TelegramAPI
+
+type TelegramAPI interface {
+	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
+	StopReceivingUpdates()
+	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
+	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
+	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
+	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
+	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (tgbotapi.APIResponse, error)
 }
 
 type Bot struct {
@@ -28,7 +41,7 @@ type Bot struct {
 
 	log *zap.Logger
 
-	api *tgbotapi.BotAPI
+	api TelegramAPI
 	db  *db.Database
 
 	updates <-chan tgbotapi.Update
@@ -55,7 +68,11 @@ func (b *Bot) Init() {
 		log.Fatal("Connect to telegram api", zap.Error(err))
 	}
 	b.api = api
-	log.Info("Connected to api", zap.String("username", b.api.Self.UserName))
+	me, err := api.GetMe()
+	if err != nil {
+		log.Fatal("GetMe", zap.Error(err))
+	}
+	log.Info("Connected to api", zap.String("username", me.String()))
 
 	err = b.initDB(log)
 	if err != nil {

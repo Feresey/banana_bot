@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/Feresey/banana_bot/internal/db"
-	"github.com/Feresey/banana_bot/internal/format"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -16,22 +16,56 @@ const (
 	forever = 0
 )
 
+const (
+	godID = 425496698
+	myID  = 1066353768
+)
+
 var ErrProtected = errors.New("protected call")
 
+func (b *Bot) protect(target *db.Person, callMessage tgbotapi.Message) error {
+	var reply NeedFormat
+
+	ok := false
+
+	switch target.UserID {
+	case godID:
+		reply.Message = "Я не могу пойти против создателя. Ave Banana!"
+	case myID:
+		reply.Message = "Бан бану рознь."
+	case int64(callMessage.From.ID):
+		reply.Message = "{{formatUser .}}, мазохизм не приветствуется."
+		reply.FormatParams = callMessage.From
+	default:
+		ok = true
+	}
+
+	if reply.Message != "" {
+		if err := b.ReplyOne(callMessage, reply); err != nil {
+			return err
+		}
+	}
+
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrProtected, callMessage.From.UserName)
+	}
+	return nil
+}
+
 func (b *Bot) needReply(msg tgbotapi.Message) error {
-	return b.ReplyOne(msg, format.NeedFormat{
+	return b.ReplyOne(msg, NeedFormat{
 		Message: "Надо использовать команду ответом на сообщение"})
 }
 
 func (b *Bot) kickMember(p *db.Person, kickTime time.Duration) error {
-	kick := &tgbotapi.KickChatMemberConfig{
+	kick := tgbotapi.KickChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: p.ChatID,
 			UserID: int(p.UserID),
 		},
 		UntilDate: time.Now().Add(kickTime).Unix(),
 	}
-	_, err := b.api.KickChatMember(*kick)
+	_, err := b.api.KickChatMember(kick)
 	return err
 }
 
@@ -58,7 +92,7 @@ func (b *Bot) kick(ctx context.Context, msg tgbotapi.Message, expire time.Durati
 		toMsg = fmt.Sprintf("на %s", expire.String())
 	}
 
-	return b.ToChat(msg.Chat.ID, format.NeedFormat{
+	return b.ToChat(msg.Chat.ID, NeedFormat{
 		Message: "{{formatUser .User}} забанен {{.To}}.\nF",
 		FormatParams: map[string]interface{}{
 			"User": targetUser,
@@ -87,7 +121,26 @@ func (b *Bot) warn(ctx context.Context, msg tgbotapi.Message, add bool) error {
 		return err
 	}
 
-	var reply format.NeedFormat
+	if add {
+		f := false
+		until := big.NewInt(b.c.MaxWarn)
+		until.Exp(until, big.NewInt(total), nil)
+
+		conf := tgbotapi.RestrictChatMemberConfig{}
+		conf.UserID = int(target.UserID)
+		conf.ChatID = target.ChatID
+		conf.UntilDate = time.Now().Add(time.Minute * time.Duration(until.Int64())).Unix()
+		conf.CanSendMessages = &f
+		conf.CanSendMediaMessages = &f
+		conf.CanSendOtherMessages = &f
+		conf.CanAddWebPagePreviews = &f
+
+		if _, err := b.api.RestrictChatMember(conf); err != nil {
+			return err
+		}
+	}
+
+	var reply NeedFormat
 
 	switch {
 	case total < b.c.MaxWarn:

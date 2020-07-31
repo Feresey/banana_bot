@@ -11,12 +11,6 @@ const subscriptions = schemaName + "subscriptions"
 
 var subscriptionsColumns = []string{"id", "person_id", "chat_id"}
 
-type subscription struct {
-	ID       int64
-	PersonID int64
-	ChatID   int64
-}
-
 // Report
 // Если в чате появился плохой человечек, то более хорошие человечки настучат об этом
 // добрым человечкам (админам), которые посадят плохого человечка на карандаш или сразу на молоток (banhammer).

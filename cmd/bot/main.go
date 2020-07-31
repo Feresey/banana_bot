@@ -21,7 +21,8 @@ func main() {
 		MaxConcurrent: 10,
 		MaxWarn:       5,
 
-		ApiTimeout: time.Minute,
+		ApiTimeout:    time.Minute,
+		ResponseSleep: time.Second,
 
 		DBConfig: db.Config{
 			// fucking legacy. What about `iota`?!?!?
