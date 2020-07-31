@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 
-	"github.com/Feresey/banana_bot/model"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
 )
@@ -52,7 +51,7 @@ func (db *Database) Report(ctx context.Context, chatID int64) (res []int64, err 
 
 // Subscribe
 // Подписка на спам (добровольная).
-func (db *Database) Subscribe(ctx context.Context, p *model.Person) error {
+func (db *Database) Subscribe(ctx context.Context, p *Person) error {
 	return db.tx(ctx, func(tx pgx.Tx) error {
 		id, err := db.GetPersonID(ctx, tx, p)
 		if err != nil {
@@ -68,7 +67,7 @@ func (db *Database) Subscribe(ctx context.Context, p *model.Person) error {
 
 // Unsubscribe
 // Отписка от спама (пока бесплатная).
-func (db *Database) Unsubscribe(ctx context.Context, p *model.Person) error {
+func (db *Database) Unsubscribe(ctx context.Context, p *Person) error {
 	return db.tx(ctx, func(tx pgx.Tx) error {
 		id, err := db.GetPersonID(ctx, tx, p)
 		if err != nil {

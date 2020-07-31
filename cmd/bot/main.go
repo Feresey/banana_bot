@@ -5,16 +5,24 @@ import (
 	"os"
 
 	"github.com/Feresey/banana_bot/bot"
+	"github.com/spf13/viper"
 )
 
 func main() {
-	debug := flag.Bool("debug", false, "print all message data")
+	configPath := flag.String("c", "", "config path")
 	flag.Parse()
 	token := os.Getenv("TOKEN")
 
-	if err := bot.Start(token, *debug); err == nil {
-		bot.KeepOn()
-	} else {
+	var config bot.Config
+
+	v := viper.New()
+	v.SetConfigFile(*configPath)
+	v.SetDefault("token", token)
+	if err := v.Unmarshal(&config); err != nil {
 		panic(err)
 	}
+
+	b := bot.New(config)
+	b.Init()
+	b.Start()
 }

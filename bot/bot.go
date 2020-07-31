@@ -3,14 +3,12 @@ package bot
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/Feresey/banana_bot/db"
-	"github.com/Feresey/banana_bot/model"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
@@ -20,13 +18,25 @@ var defaultConfig = Config{
 	Token:         "", // strong protection!
 	MaxConcurrent: 10,
 	MaxWarn:       5,
+
+	ApiTimeout: time.Minute,
+
+	DBConfig: db.Config{
+		LogLevel:       "debug",
+		ConnectTimeout: 10 * time.Second,
+		// do migrate
+		Migrate: 0,
+		SQL:     "postgres://postgres:5432",
+	},
 }
 
 type Config struct {
 	Token         string
 	MaxConcurrent int
-	MaxWarn       int
+	MaxWarn       int64
 	DBConfig      db.Config
+
+	ApiTimeout time.Duration
 }
 
 type Bot struct {
@@ -49,26 +59,23 @@ func New(config Config) *Bot {
 	}
 }
 
-func (b *Bot) Init() error {
+func (b *Bot) Init() {
 	log, err := zap.NewProduction()
 	if err != nil {
-		return err
+		panic(err)
 	}
 	b.log = log
 
 	api, err := tgbotapi.NewBotAPI(b.c.Token)
 	if err != nil {
-		return fmt.Errorf("connect to telegram api: %w", err)
+		log.Fatal("Connect to telegram api", zap.Error(err))
 	}
 	b.api = api
 	log.Info("Connected to api", zap.String("username", b.api.Self.UserName))
 
-	b.db = db.New(log, b.c.DBConfig)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	err = b.db.Init(ctx)
+	err = b.initDB(log)
 	if err != nil {
-		return err
+		log.Fatal("Connect to DB", zap.Error(err))
 	}
 	log.Info("Connected to DB")
 
@@ -76,12 +83,23 @@ func (b *Bot) Init() error {
 	u.Timeout = 60
 	updates, err := b.api.GetUpdatesChan(u)
 	if err != nil {
-		return fmt.Errorf("get updates: %w", err)
+		log.Fatal("Get updates", zap.Error(err))
 	}
 	b.updates = updates
 	log.Info("Subscribe on updates")
 
-	return nil
+	log.Info("Bot ready")
+}
+
+func (b *Bot) initDB(log *zap.Logger) error {
+	log = log.Named("db-connect").With(zap.Duration("connect_timeout", b.c.DBConfig.ConnectTimeout))
+	log.Info("Init DB")
+
+	b.db = db.New(log, b.c.DBConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), b.c.DBConfig.ConnectTimeout)
+	defer cancel()
+
+	return b.db.Init(ctx)
 }
 
 func (b *Bot) Start() {
@@ -99,12 +117,10 @@ func (b *Bot) Start() {
 	defer cancel()
 
 	if err := b.Shutdown(ctx); err != nil {
-		b.log.Error("Shutdown", zap.Error(err))
-		os.Exit(1)
+		b.log.Fatal("Shutdown", zap.Error(err))
 	}
 
-	b.log.Info("Bot stopped")
-	os.Exit(0)
+	b.log.Info("Bot stopped gracefully")
 }
 
 func (b *Bot) Shutdown(ctx context.Context) (multi error) {
@@ -131,7 +147,10 @@ func (b *Bot) listen() {
 
 		limit <- struct{}{}
 		go func() {
-			processMessage(model.Message{Message: msg})
+			err := b.processMessage(*msg)
+			if err != nil {
+				b.log.Error("Process message failed", zap.Error(err))
+			}
 			<-limit
 		}()
 	}

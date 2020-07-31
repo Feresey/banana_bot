@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Feresey/banana_bot/db/migrations"
 	"github.com/Masterminds/squirrel"
@@ -22,6 +23,8 @@ type Config struct {
 	SQL      string
 	LogLevel string
 	Migrate  int
+
+	ConnectTimeout time.Duration
 }
 
 // Database

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Feresey/banana_bot/model"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
 )
@@ -13,11 +12,18 @@ const personsTableName = schemaName + "persons"
 
 var personColumns = []string{"id", "chat_id", "user_id"}
 
+// Person : структура лежащая в базе
+type Person struct {
+	ID     int64
+	ChatID int64
+	UserID int64
+}
+
 // GetPersonID возвращает некоторый id человечка. Если готового id нет, он создаётся.
 func (db *Database) GetPersonID(
 	ctx context.Context,
 	tx executor,
-	person *model.Person,
+	person *Person,
 ) (id int64, err error) {
 	id, err = db.checkPersonExists(ctx, tx, person)
 	if err != nil {
@@ -35,7 +41,7 @@ func (db *Database) GetPersonID(
 func (db *Database) checkPersonExists(
 	ctx context.Context,
 	tx executor,
-	person *model.Person,
+	person *Person,
 ) (id int64, err error) {
 	qb := psql.
 		Select("id").
@@ -51,7 +57,7 @@ func (db *Database) checkPersonExists(
 func (db *Database) createPerson(
 	ctx context.Context,
 	tx executor,
-	person *model.Person,
+	person *Person,
 ) (id int64, err error) {
 	qb := psql.
 		Insert(personsTableName).

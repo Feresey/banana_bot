@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Feresey/banana_bot/model"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
 )
@@ -15,7 +14,7 @@ var warnColumns = []string{"person_id", "total"}
 
 // Warn доставляет плохишу +1 в карму (точнее в счётчик выговоров)
 // параметр `add` регулирует добавлять ли в счётчик или убирать. Ну а вдруг человек хороший.
-func (db *Database) Warn(ctx context.Context, person *model.Person, add bool) (int64, error) {
+func (db *Database) Warn(ctx context.Context, person *Person, add bool) (int64, error) {
 	var total int64
 	err := db.tx(ctx, func(tx pgx.Tx) error {
 		var err error
@@ -37,7 +36,7 @@ func (db *Database) newWarn(ctx context.Context, tx pgx.Tx, personID int64, valu
 func (db *Database) warn(
 	ctx context.Context,
 	tx pgx.Tx,
-	person *model.Person,
+	person *Person,
 	add bool,
 ) (int64, error) {
 	id, err := db.checkPersonExists(ctx, tx, person)
