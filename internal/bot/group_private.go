@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Feresey/banana_bot/db"
-	"github.com/Feresey/banana_bot/format"
+	"github.com/Feresey/banana_bot/internal/db"
+	"github.com/Feresey/banana_bot/internal/format"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 

@@ -6,8 +6,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.uber.org/zap"
 
-	"github.com/Feresey/banana_bot/db"
-	"github.com/Feresey/banana_bot/format"
+	"github.com/Feresey/banana_bot/internal/db"
+	"github.com/Feresey/banana_bot/internal/format"
 )
 
 func personFromMessage(msg tgbotapi.Message) *db.Person {

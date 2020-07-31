@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Feresey/banana_bot/db/migrations"
+	"github.com/Feresey/banana_bot/internal/db/migrations"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"

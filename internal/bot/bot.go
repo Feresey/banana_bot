@@ -8,27 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Feresey/banana_bot/db"
+	"github.com/Feresey/banana_bot/internal/db"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
 )
-
-var defaultConfig = Config{
-	Token:         "", // strong protection!
-	MaxConcurrent: 10,
-	MaxWarn:       5,
-
-	ApiTimeout: time.Minute,
-
-	DBConfig: db.Config{
-		LogLevel:       "debug",
-		ConnectTimeout: 10 * time.Second,
-		// do migrate
-		Migrate: 0,
-		SQL:     "postgres://postgres:5432",
-	},
-}
 
 type Config struct {
 	Token         string

@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
-	"github.com/Feresey/banana_bot/bot"
+	"github.com/Feresey/banana_bot/internal/bot"
+	"github.com/Feresey/banana_bot/internal/db"
+	"github.com/jackc/pgx/v4"
 	"github.com/spf13/viper"
 )
 
@@ -13,11 +16,25 @@ func main() {
 	flag.Parse()
 	token := os.Getenv("TOKEN")
 
-	var config bot.Config
+	config := bot.Config{
+		Token:         token,
+		MaxConcurrent: 10,
+		MaxWarn:       5,
+
+		ApiTimeout: time.Minute,
+
+		DBConfig: db.Config{
+			// fucking legacy. What about `iota`?!?!?
+			LogLevel:       pgx.LogLevel(pgx.LogLevelDebug).String(),
+			ConnectTimeout: 10 * time.Second,
+			// do migrate
+			Migrate: 0,
+			SQL:     "postgres://postgres:5432",
+		},
+	}
 
 	v := viper.New()
 	v.SetConfigFile(*configPath)
-	v.SetDefault("token", token)
 	if err := v.Unmarshal(&config); err != nil {
 		panic(err)
 	}
