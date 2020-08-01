@@ -15,6 +15,10 @@ var (
 	ErrNoSuchCommand = errors.New("no such command")
 )
 
+var (
+	onlyAdminsMessage = "Только админам можно"
+)
+
 func (b *Bot) processMessage(msg tgbotapi.Message) error {
 	// предполагая что у меня руки из жопы я оставлю это здесь
 	defer func() {
@@ -43,8 +47,9 @@ func (b *Bot) processMessage(msg tgbotapi.Message) error {
 
 		_, err = b.api.DeleteMessage(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
 		return err
+	default:
+		return ErrWTF
 	}
-	return ErrWTF
 }
 
 func (b *Bot) isPublicMethod(cmd string) bool {
@@ -66,6 +71,7 @@ func (b *Bot) isAdmin(msg tgbotapi.Message) bool {
 	})
 	if err != nil {
 		b.log.Error("Unable get info about user", zap.Error(err))
+		return false
 	}
 	// safe to call on default value
 	return member.IsAdministrator() || member.IsCreator()
@@ -76,13 +82,17 @@ func (b *Bot) groupMessage(msg tgbotapi.Message) (del bool, err error) {
 		// Обычное сообщение, лог ненужон
 		return false, nil
 	}
+	// сообщение другому боту, или мисклик
+	if !b.api.IsMessageToMe(msg) {
+		return false, nil
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	if !b.isPublicMethod(msg.Command()) {
 		if !b.isAdmin(msg) {
-			return false, b.ReplyOne(msg, NeedFormat{Message: "Только админам можно"})
+			return false, b.ReplyOne(msg, NeedFormat{Message: onlyAdminsMessage})
 		}
 		return false, b.processAdminActions(ctx, msg)
 	}

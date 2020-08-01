@@ -9,7 +9,7 @@ import (
 )
 
 var funcs = template.FuncMap{
-	"formatUser": func(user tgbotapi.User) string {
+	"formatUser": func(user *tgbotapi.User) string {
 		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
 	},
 }
@@ -57,21 +57,29 @@ func NewFormatter(api TelegramAPI, baseChat tgbotapi.BaseChat, opts ...formatter
 	return f
 }
 
-func (f *Formatter) Format(format NeedFormat) error {
-	msg := &tgbotapi.MessageConfig{
-		BaseChat: f.baseChat,
-	}
+func format(format NeedFormat) (string, error) {
 	tmpl, err := template.New("").Funcs(funcs).Parse(format.Message)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	out := new(strings.Builder)
 	if err = tmpl.Execute(out, format.FormatParams); err != nil {
-		return err
+		return "", err
+	}
+	return out.String(), nil
+}
+
+func (f *Formatter) Format(need NeedFormat) error {
+	msg := &tgbotapi.MessageConfig{
+		BaseChat: f.baseChat,
 	}
 
-	msg.Text = out.String()
+	text, err := format(need)
+	if err != nil {
+		return err
+	}
+	msg.Text = text
 	if f.before != nil {
 		f.before(msg)
 	}

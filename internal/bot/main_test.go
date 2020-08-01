@@ -45,5 +45,25 @@ func TestMain(m *testing.M) {
 
 		updates: updates,
 	}
-	os.Exit(m.Run())
+
+	done := make(chan struct{})
+
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		log.Fatal("get PID", zap.Error(err))
+	}
+	go func() {
+		bot.Start()
+		close(done)
+	}()
+
+	time.Sleep(time.Second)
+	exit := m.Run()
+	bot.api = nil
+	bot.db = nil
+	if err := p.Signal(os.Interrupt); err != nil {
+		log.Fatal("Send interrupt signal", zap.Error(err))
+	}
+	<-done
+	os.Exit(exit)
 }

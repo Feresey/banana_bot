@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,6 +12,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
@@ -24,7 +25,7 @@ type Config struct {
 	ResponseSleep time.Duration
 }
 
-//go:generate go run github.com/golang/mock/mockgen -destination mock.go -package bot . TelegramAPI
+//go:generate go run github.com/golang/mock/mockgen -destination mock_test.go -package bot . TelegramAPI,Database
 
 type TelegramAPI interface {
 	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
@@ -34,80 +35,111 @@ type TelegramAPI interface {
 	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
 	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
 	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (tgbotapi.APIResponse, error)
+	IsMessageToMe(tgbotapi.Message) bool
+}
+
+type Database interface {
+	Init(context.Context) error
+	Shutdown(context.Context) error
+	Warn(ctx context.Context, person *db.Person, add bool) (int64, error)
+	Subscribe(ctx context.Context, p *db.Person) error
+	Unsubscribe(ctx context.Context, p *db.Person) error
+	Report(ctx context.Context, chatID int64) (res []int64, err error)
 }
 
 type Bot struct {
-	c *Config
-
+	c   *Config
 	log *zap.Logger
 
-	api TelegramAPI
-	db  *db.Database
-
-	updates <-chan tgbotapi.Update
 	done    chan struct{}
+	updates <-chan tgbotapi.Update
+	api     TelegramAPI
+
+	db Database
 }
 
 func New(config Config) *Bot {
 	return &Bot{
-		c: &config,
-
+		c:    &config,
 		done: make(chan struct{}),
 	}
 }
 
 func (b *Bot) Init() {
-	log, err := zap.NewProduction()
+	lc := zap.NewDevelopmentConfig()
+	lc.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	log, err := lc.Build()
 	if err != nil {
 		panic(err)
 	}
-	b.log = log
+	b.log = log.Named("bot")
+	log = log.Named("init")
 
-	api, err := tgbotapi.NewBotAPI(b.c.Token)
+	err = b.initAPI(log)
 	if err != nil {
 		log.Fatal("Connect to telegram api", zap.Error(err))
 	}
-	b.api = api
-	me, err := api.GetMe()
-	if err != nil {
-		log.Fatal("GetMe", zap.Error(err))
-	}
-	log.Info("Connected to api", zap.String("username", me.String()))
 
 	err = b.initDB(log)
 	if err != nil {
 		log.Fatal("Connect to DB", zap.Error(err))
 	}
-	log.Info("Connected to DB")
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-	updates, err := b.api.GetUpdatesChan(u)
+	err = b.initUpdates(log)
 	if err != nil {
 		log.Fatal("Get updates", zap.Error(err))
 	}
-	b.updates = updates
-	log.Info("Subscribe on updates")
 
 	log.Info("Bot ready")
 }
 
+func (b *Bot) initAPI(log *zap.Logger) error {
+	api, err := tgbotapi.NewBotAPI(b.c.Token)
+	if err != nil {
+		return fmt.Errorf("connect to telegram api: %w", err)
+	}
+	b.api = api
+	me, err := api.GetMe()
+	if err != nil {
+		return fmt.Errorf("get me: %w", err)
+	}
+	log.Info("Connected to api", zap.String("username", me.String()))
+	return nil
+}
+
 func (b *Bot) initDB(log *zap.Logger) error {
-	log = log.Named("db-connect").With(zap.Duration("connect_timeout", b.c.DBConfig.ConnectTimeout))
-	log.Info("Init DB")
+	log = log.Named("db-connect")
+	log.Info("Init DB", zap.Duration("connect_timeout", b.c.DBConfig.ConnectTimeout))
 
 	b.db = db.New(log, b.c.DBConfig)
 	ctx, cancel := context.WithTimeout(context.Background(), b.c.DBConfig.ConnectTimeout)
 	defer cancel()
 
-	return b.db.Init(ctx)
+	err := b.db.Init(ctx)
+	if err != nil {
+		return err
+	}
+	log.Info("Database connected")
+	return nil
+}
+
+func (b *Bot) initUpdates(log *zap.Logger) error {
+	// переподписка?
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = int(b.c.ApiTimeout.Seconds())
+	updates, err := b.api.GetUpdatesChan(u)
+	if err != nil {
+		return fmt.Errorf("get updates %w", err)
+	}
+	b.updates = updates
+	log.Info("Subscribe on updates")
+	return nil
 }
 
 func (b *Bot) Start() {
-	go func() {
-		b.listen()
-		close(b.done)
-	}()
+	// тут немного костылики, т.к. канал завершения лежит в структуре бота.
+	// Это сделано ради того, чтобы не передавать канал в bot.Shutdown
+	b.Listen()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -125,15 +157,27 @@ func (b *Bot) Start() {
 }
 
 func (b *Bot) Shutdown(ctx context.Context) (multi error) {
-	b.api.StopReceivingUpdates()
-	<-b.done
-	if err := b.db.Shutdown(ctx); err != nil {
-		multi = multierror.Append(multi, err)
+	if b.api != nil {
+		b.api.StopReceivingUpdates()
+		<-b.done
+	}
+	if b.db != nil {
+		if err := b.db.Shutdown(ctx); err != nil {
+			multi = multierror.Append(multi, err)
+		}
 	}
 	return multi
 }
 
-// KeepOn : start messaging and block main function
+// Listen открывает стрим сообщений (обновлений) от телеги. Если возникает ошибка,
+// то библиотека срёт в лог и закрывает канал. Я ебал, зачем так делать?
+func (b *Bot) Listen() {
+	go func() {
+		b.listen()
+		close(b.done)
+	}()
+}
+
 func (b *Bot) listen() {
 	defer b.log.Info("Listening cancelled")
 
@@ -141,8 +185,7 @@ func (b *Bot) listen() {
 	for update := range b.updates {
 		msg := update.Message
 		if msg == nil {
-			data, _ := json.MarshalIndent(update, "", "  ")
-			b.log.Debug("Non-message update", zap.ByteString("data", data))
+			b.log.Debug("Non-message update", zap.Reflect("data", update))
 			continue
 		}
 

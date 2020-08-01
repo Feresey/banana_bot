@@ -6,6 +6,19 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+var (
+	subscribeMessage   = "Лайк, подписка"
+	unsubscribeMessage = "Дизлайк, отписка"
+)
+
+func formatReport(msg tgbotapi.Message) NeedFormat {
+	return NeedFormat{
+		Message: "Вас призывают в чат {{.Chat.Title}}. " +
+			"https://t.me/c/{{.Chat.ID % 1000000000000}}/{{.MessageID}}",
+		FormatParams: msg,
+	}
+}
+
 func (b *Bot) report(ctx context.Context, msg tgbotapi.Message) (bool, error) {
 	subscribed, err := b.db.Report(ctx, msg.Chat.ID)
 	if err != nil {
@@ -13,13 +26,7 @@ func (b *Bot) report(ctx context.Context, msg tgbotapi.Message) (bool, error) {
 	}
 
 	for _, subscriber := range subscribed {
-		if err := b.ToChat(
-			subscriber,
-			NeedFormat{
-				Message: "Вас призывают в чат {{.Chat.Title}}. https://t.me/c/{{.Chat.ID % 1000000000000}}/{{.MessageID}}",
-
-				FormatParams: msg,
-			}); err != nil {
+		if err := b.ToChat(subscriber, formatReport(msg)); err != nil {
 			return false, err
 		}
 	}
@@ -30,12 +37,12 @@ func (b *Bot) subscribe(ctx context.Context, msg tgbotapi.Message) error {
 	if err := b.db.Subscribe(ctx, personFromMessage(msg)); err != nil {
 		return err
 	}
-	return b.ReplyOne(msg, NeedFormat{Message: "Лайк, подписка"})
+	return b.ReplyOne(msg, NeedFormat{Message: subscribeMessage})
 }
 
 func (b *Bot) unsubscribe(ctx context.Context, msg tgbotapi.Message) error {
 	if err := b.db.Unsubscribe(ctx, personFromMessage(msg)); err != nil {
 		return err
 	}
-	return b.ReplyOne(msg, NeedFormat{Message: "Дизайк, отписка"})
+	return b.ReplyOne(msg, NeedFormat{Message: unsubscribeMessage})
 }

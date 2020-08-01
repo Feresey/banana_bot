@@ -1,8 +1,6 @@
 package bot
 
 import (
-	"html/template"
-	"strings"
 	"testing"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -17,20 +15,7 @@ func TestStart(t *testing.T) {
 	am := NewMockTelegramAPI(ctrl)
 	bot.api = am
 
-	text := "/start@command"
-	call := tgbotapi.Message{
-		MessageID: 1,
-		Entities: &[]tgbotapi.MessageEntity{{
-			Offset: 0,
-			Length: len(text),
-			Type:   "bot_command",
-		}},
-		Text: text,
-		Chat: &tgbotapi.Chat{
-			ID:    123123,
-			Title: "chat",
-		},
-	}
+	call := commandMesage("/start@command", "private")
 
 	for _, msg := range startMessages {
 		am.EXPECT().Send(&tgbotapi.MessageConfig{
@@ -41,7 +26,7 @@ func TestStart(t *testing.T) {
 		}).Return(tgbotapi.Message{}, nil).Times(1)
 	}
 
-	err := bot.privateMessage(call)
+	err := bot.processMessage(call)
 	require.NoError(t, err)
 }
 
@@ -52,40 +37,16 @@ func TestStop(t *testing.T) {
 	am := NewMockTelegramAPI(ctrl)
 	bot.api = am
 
-	text := "/stop@command"
-	call := tgbotapi.Message{
-		MessageID: 1,
-		Entities: &[]tgbotapi.MessageEntity{{
-			Offset: 0,
-			Length: len(text),
-			Type:   "bot_command",
-		}},
-		Text: text,
-		Chat: &tgbotapi.Chat{
-			ID:    123123,
-			Title: "chat",
-		},
-		From: &tgbotapi.User{
-			ID:       42,
-			UserName: "user",
-		},
-	}
-
-	out := new(strings.Builder)
-	tmpl := template.Must(template.New("").Funcs(funcs).Parse(stopMessage))
-	err := tmpl.Execute(out, call.From)
-	require.NoError(t, err)
-	want := out.String()
-
+	call := commandMesage("/stop@command", "private")
 	am.EXPECT().Send(&tgbotapi.MessageConfig{
 		BaseChat: tgbotapi.BaseChat{
 			ChatID:           call.Chat.ID,
 			ReplyToMessageID: call.MessageID,
 		},
-		Text: want,
+		Text: mustFormat(t, NeedFormat{Message: stopMessage, FormatParams: call.From}),
 	})
 
-	err = bot.privateMessage(call)
+	err := bot.processMessage(call)
 	require.NoError(t, err)
 }
 
@@ -96,20 +57,7 @@ func TestDefault(t *testing.T) {
 	am := NewMockTelegramAPI(ctrl)
 	bot.api = am
 
-	text := "/lol_none@command"
-	call := tgbotapi.Message{
-		MessageID: 1,
-		Entities: &[]tgbotapi.MessageEntity{{
-			Offset: 0,
-			Length: len(text),
-			Type:   "bot_command",
-		}},
-		Text: text,
-		Chat: &tgbotapi.Chat{
-			ID:    123123,
-			Title: "chat",
-		},
-	}
+	call := commandMesage("/lol_none@command", "private")
 
 	am.EXPECT().Send(&tgbotapi.MessageConfig{
 		BaseChat: tgbotapi.BaseChat{
@@ -119,6 +67,6 @@ func TestDefault(t *testing.T) {
 		Text: todoMessage,
 	})
 
-	err := bot.privateMessage(call)
+	err := bot.processMessage(call)
 	require.NoError(t, err)
 }
