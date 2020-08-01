@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func TestFormat(t *testing.T) {
 	api.EXPECT().Send(&tgbotapi.MessageConfig{
 		BaseChat: baseChat,
 		Text:     want,
-	}).Return(tgbotapi.Message{}, nil).Times(1)
+	}).Return(nil, nil).Times(1)
 
 	err := NewFormatter(api, baseChat).Format(need)
 	require.NoError(t, err)
@@ -53,7 +53,7 @@ func TestFormat(t *testing.T) {
 	api.EXPECT().Send(&tgbotapi.MessageConfig{
 		BaseChat: baseChat,
 		Text:     want,
-	}).Return(tgbotapi.Message{}, wantErr).Times(1)
+	}).Return(nil, wantErr).Times(1)
 	err = NewFormatter(api, baseChat).Format(need)
 	require.EqualError(t, err, wantErr.Error())
 }

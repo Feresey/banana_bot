@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Feresey/banana_bot/internal/db"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -30,12 +30,12 @@ type Config struct {
 type TelegramAPI interface {
 	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
 	StopReceivingUpdates()
-	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
-	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
-	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
-	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
-	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (tgbotapi.APIResponse, error)
-	IsMessageToMe(tgbotapi.Message) bool
+	KickChatMember(tgbotapi.KickChatMemberConfig) (*tgbotapi.APIResponse, error)
+	Send(tgbotapi.Chattable) (*tgbotapi.Message, error)
+	DeleteMessage(tgbotapi.DeleteMessageConfig) (*tgbotapi.APIResponse, error)
+	GetChatMember(tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error)
+	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (*tgbotapi.APIResponse, error)
+	IsMessageToMe(*tgbotapi.Message) bool
 }
 
 type Database interface {
@@ -66,12 +66,27 @@ func New(config Config) *Bot {
 }
 
 func (b *Bot) Init() {
-	lc := zap.NewDevelopmentConfig()
-	lc.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	log, err := lc.Build()
+	console := zap.NewDevelopmentEncoderConfig()
+	console.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	consoleOut, _, err := zap.Open("stdout")
 	if err != nil {
 		panic(err)
 	}
+
+	file := zap.NewProductionEncoderConfig()
+	file.EncodeCaller = zapcore.FullCallerEncoder
+	fileOut, _, err := zap.Open("bot.log")
+	if err != nil {
+		panic(err)
+	}
+
+	log := zap.New(
+		zapcore.NewTee(
+			zapcore.NewCore(zapcore.NewConsoleEncoder(console), consoleOut, zapcore.DebugLevel),
+			zapcore.NewCore(zapcore.NewJSONEncoder(file), fileOut, zapcore.DebugLevel),
+		),
+	)
+
 	b.log = log.Named("bot")
 	log = log.Named("init")
 
@@ -191,7 +206,7 @@ func (b *Bot) listen() {
 
 		limit <- struct{}{}
 		go func() {
-			err := b.processMessage(*msg)
+			err := b.processMessage(msg)
 			if err != nil {
 				b.log.Error("Process message failed", zap.Error(err))
 			}

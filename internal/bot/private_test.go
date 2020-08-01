@@ -3,7 +3,7 @@ package bot
 import (
 	"testing"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestStart(t *testing.T) {
 				ChatID: call.Chat.ID,
 			},
 			Text: msg.Message,
-		}).Return(tgbotapi.Message{}, nil).Times(1)
+		}).Return(nil, nil).Times(1)
 	}
 
 	err := bot.processMessage(call)

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Feresey/banana_bot/internal/db"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

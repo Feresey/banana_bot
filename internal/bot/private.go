@@ -3,7 +3,7 @@ package bot
 import (
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 )
 
 var (
@@ -20,14 +20,14 @@ var (
 	todoMessage = "Соре, я не умею ничего в личном чате. Хз, может тут будет статистика."
 )
 
-func (b *Bot) privateMessage(msg tgbotapi.Message) error {
+func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 	cmd := msg.Command()
 
 	switch cmd {
 	case "start":
 		formatter := NewFormatter(
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},
-			AddAfter(func(tgbotapi.Message) { time.Sleep(b.c.ResponseSleep) }),
+			AddAfter(func(*tgbotapi.Message) { time.Sleep(b.c.ResponseSleep) }),
 		)
 
 		for _, msg := range startMessages {

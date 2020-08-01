@@ -1,10 +1,10 @@
 .PHONY:all
-all: vet bin
+all: lint bin
 	go build -v -o ./bin/ ./cmd/...
 
-.PHONY:vet
+.PHONY:lint
 vet:
-	go vet ./...
+	golangci-lint run
 	
 bin:
 	mkdir bin

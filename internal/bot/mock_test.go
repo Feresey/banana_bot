@@ -7,7 +7,7 @@ package bot
 import (
 	context "context"
 	db "github.com/Feresey/banana_bot/internal/db"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
@@ -36,10 +36,10 @@ func (m *MockTelegramAPI) EXPECT() *MockTelegramAPIMockRecorder {
 }
 
 // DeleteMessage mocks base method
-func (m *MockTelegramAPI) DeleteMessage(arg0 tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelegramAPI) DeleteMessage(arg0 tgbotapi.DeleteMessageConfig) (*tgbotapi.APIResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMessage", arg0)
-	ret0, _ := ret[0].(tgbotapi.APIResponse)
+	ret0, _ := ret[0].(*tgbotapi.APIResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,10 +51,10 @@ func (mr *MockTelegramAPIMockRecorder) DeleteMessage(arg0 interface{}) *gomock.C
 }
 
 // GetChatMember mocks base method
-func (m *MockTelegramAPI) GetChatMember(arg0 tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error) {
+func (m *MockTelegramAPI) GetChatMember(arg0 tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChatMember", arg0)
-	ret0, _ := ret[0].(tgbotapi.ChatMember)
+	ret0, _ := ret[0].(*tgbotapi.ChatMember)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,7 +81,7 @@ func (mr *MockTelegramAPIMockRecorder) GetUpdatesChan(arg0 interface{}) *gomock.
 }
 
 // IsMessageToMe mocks base method
-func (m *MockTelegramAPI) IsMessageToMe(arg0 tgbotapi.Message) bool {
+func (m *MockTelegramAPI) IsMessageToMe(arg0 *tgbotapi.Message) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsMessageToMe", arg0)
 	ret0, _ := ret[0].(bool)
@@ -95,10 +95,10 @@ func (mr *MockTelegramAPIMockRecorder) IsMessageToMe(arg0 interface{}) *gomock.C
 }
 
 // KickChatMember mocks base method
-func (m *MockTelegramAPI) KickChatMember(arg0 tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelegramAPI) KickChatMember(arg0 tgbotapi.KickChatMemberConfig) (*tgbotapi.APIResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "KickChatMember", arg0)
-	ret0, _ := ret[0].(tgbotapi.APIResponse)
+	ret0, _ := ret[0].(*tgbotapi.APIResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -110,10 +110,10 @@ func (mr *MockTelegramAPIMockRecorder) KickChatMember(arg0 interface{}) *gomock.
 }
 
 // RestrictChatMember mocks base method
-func (m *MockTelegramAPI) RestrictChatMember(arg0 tgbotapi.RestrictChatMemberConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelegramAPI) RestrictChatMember(arg0 tgbotapi.RestrictChatMemberConfig) (*tgbotapi.APIResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestrictChatMember", arg0)
-	ret0, _ := ret[0].(tgbotapi.APIResponse)
+	ret0, _ := ret[0].(*tgbotapi.APIResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -125,10 +125,10 @@ func (mr *MockTelegramAPIMockRecorder) RestrictChatMember(arg0 interface{}) *gom
 }
 
 // Send mocks base method
-func (m *MockTelegramAPI) Send(arg0 tgbotapi.Chattable) (tgbotapi.Message, error) {
+func (m *MockTelegramAPI) Send(arg0 tgbotapi.Chattable) (*tgbotapi.Message, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
-	ret0, _ := ret[0].(tgbotapi.Message)
+	ret0, _ := ret[0].(*tgbotapi.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

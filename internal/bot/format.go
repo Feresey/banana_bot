@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 )
 
 var funcs = template.FuncMap{
@@ -26,7 +26,7 @@ type FormatOptions struct {
 
 type formatterOption func(f *Formatter)
 
-type AfterFunc func(tgbotapi.Message)
+type AfterFunc func(*tgbotapi.Message)
 type BeforeFunc func(*tgbotapi.MessageConfig)
 
 func AddAfter(after AfterFunc) formatterOption {
@@ -73,13 +73,15 @@ func format(format NeedFormat) (string, error) {
 func (f *Formatter) Format(need NeedFormat) error {
 	msg := &tgbotapi.MessageConfig{
 		BaseChat: f.baseChat,
+		Text:     need.Message,
 	}
-
-	text, err := format(need)
-	if err != nil {
-		return err
+	if need.FormatParams != nil {
+		text, err := format(need)
+		if err != nil {
+			return err
+		}
+		msg.Text = text
 	}
-	msg.Text = text
 	if f.before != nil {
 		f.before(msg)
 	}

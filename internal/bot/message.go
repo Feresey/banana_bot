@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ var (
 	onlyAdminsMessage = "Только админам можно"
 )
 
-func (b *Bot) processMessage(msg tgbotapi.Message) error {
+func (b *Bot) processMessage(msg *tgbotapi.Message) error {
 	// предполагая что у меня руки из жопы я оставлю это здесь
 	defer func() {
 		if err := recover(); err != nil {
@@ -61,7 +61,7 @@ func (b *Bot) isPublicMethod(cmd string) bool {
 	}
 }
 
-func (b *Bot) isAdmin(msg tgbotapi.Message) bool {
+func (b *Bot) isAdmin(msg *tgbotapi.Message) bool {
 	if msg.Chat.IsPrivate() {
 		return true
 	}
@@ -77,7 +77,7 @@ func (b *Bot) isAdmin(msg tgbotapi.Message) bool {
 	return member.IsAdministrator() || member.IsCreator()
 }
 
-func (b *Bot) groupMessage(msg tgbotapi.Message) (del bool, err error) {
+func (b *Bot) groupMessage(msg *tgbotapi.Message) (del bool, err error) {
 	if !msg.IsCommand() {
 		// Обычное сообщение, лог ненужон
 		return false, nil
@@ -99,7 +99,7 @@ func (b *Bot) groupMessage(msg tgbotapi.Message) (del bool, err error) {
 	return b.processPublicActions(ctx, msg)
 }
 
-func (b *Bot) processPublicActions(ctx context.Context, msg tgbotapi.Message) (del bool, err error) {
+func (b *Bot) processPublicActions(ctx context.Context, msg *tgbotapi.Message) (del bool, err error) {
 	b.log.Debug("public action", zap.String("command", msg.Command()))
 	del = true
 	switch msg.Command() {
@@ -116,7 +116,7 @@ func (b *Bot) processPublicActions(ctx context.Context, msg tgbotapi.Message) (d
 	return
 }
 
-func (b *Bot) processAdminActions(ctx context.Context, msg tgbotapi.Message) error {
+func (b *Bot) processAdminActions(ctx context.Context, msg *tgbotapi.Message) error {
 	b.log.Debug("admin action", zap.String("command", msg.Command()))
 	switch msg.Command() {
 	case "ban":

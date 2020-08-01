@@ -3,7 +3,7 @@ package bot
 import (
 	"testing"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -16,8 +16,8 @@ import (
 // 	<-done
 // }
 
-func commandMesage(cmd, group string) tgbotapi.Message {
-	return tgbotapi.Message{
+func commandMesage(cmd, group string) *tgbotapi.Message {
+	return &tgbotapi.Message{
 		Entities: &[]tgbotapi.MessageEntity{{
 			Length: len(cmd),
 			Offset: 0,
@@ -59,7 +59,7 @@ func TestProtect(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "really not admin",
 			},
@@ -73,7 +73,7 @@ func TestProtect(t *testing.T) {
 					ReplyToMessageID: msg.MessageID,
 				},
 				Text: onlyAdminsMessage,
-			}).Return(tgbotapi.Message{}, nil).Times(1)
+			}).Return(nil, nil).Times(1)
 
 		bot.api = api
 		err := bot.processMessage(msg)
@@ -94,7 +94,7 @@ func TestProtect(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
@@ -113,7 +113,7 @@ func TestProtect(t *testing.T) {
 						FormatParams: msg.From,
 					}),
 			},
-		).Return(tgbotapi.Message{}, nil).Times(1)
+		).Return(nil, nil).Times(1)
 
 		bot.api = api
 		err := bot.processMessage(msg)
@@ -137,7 +137,7 @@ func TestProtect(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
@@ -152,7 +152,7 @@ func TestProtect(t *testing.T) {
 				},
 				Text: mustFormat(t, NeedFormat{Message: protectMeMessage}),
 			},
-		).Return(tgbotapi.Message{}, nil).Times(1)
+		).Return(nil, nil).Times(1)
 
 		bot.api = api
 		err := bot.processMessage(msg)
@@ -176,7 +176,7 @@ func TestProtect(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
@@ -191,7 +191,7 @@ func TestProtect(t *testing.T) {
 				},
 				Text: mustFormat(t, NeedFormat{Message: protectGodMessage}),
 			},
-		).Return(tgbotapi.Message{}, nil).Times(1)
+		).Return(nil, nil).Times(1)
 
 		bot.api = api
 		err := bot.processMessage(msg)
@@ -223,21 +223,21 @@ func TestWarn(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		dbm.EXPECT().
 			Warn(gomock.Any(), target, true).Return(int64(1), nil)
 
 		api.EXPECT().
 			RestrictChatMember(bot.limitation(target, 1)).
-			Return(tgbotapi.APIResponse{}, nil)
+			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{
@@ -273,14 +273,14 @@ func TestWarn(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		dbm.EXPECT().
 			Warn(gomock.Any(), target, false).Return(int64(0), nil).Times(1)
@@ -320,21 +320,21 @@ func TestWarn(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		dbm.EXPECT().
 			Warn(gomock.Any(), target, true).Return(bot.c.MaxWarn, nil)
 
 		api.EXPECT().
 			RestrictChatMember(bot.limitation(target, bot.c.MaxWarn)).
-			Return(tgbotapi.APIResponse{}, nil)
+			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{
@@ -370,20 +370,20 @@ func TestWarn(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		dbm.EXPECT().
 			Warn(gomock.Any(), target, true).Return(bot.c.MaxWarn+1, nil)
 		api.EXPECT().
 			RestrictChatMember(bot.limitation(target, bot.c.MaxWarn+1)).
-			Return(tgbotapi.APIResponse{}, nil)
+			Return(nil, nil)
 		api.EXPECT().
 			KickChatMember(getKickConfig(target, forever))
 
@@ -416,18 +416,18 @@ func TestKick(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		api.EXPECT().
 			KickChatMember(getKickConfig(target, day)).
-			Return(tgbotapi.APIResponse{}, nil)
+			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{
@@ -463,18 +463,18 @@ func TestKick(t *testing.T) {
 				ChatID: msg.Chat.ID,
 				UserID: msg.From.ID,
 			}).Return(
-			tgbotapi.ChatMember{
+			&tgbotapi.ChatMember{
 				User:   msg.From,
 				Status: "administrator",
 			},
 			nil,
 		).Times(1)
 
-		target := personFromMessage(*msg.ReplyToMessage)
+		target := personFromMessage(msg.ReplyToMessage)
 
 		api.EXPECT().
 			KickChatMember(getKickConfig(target, forever)).
-			Return(tgbotapi.APIResponse{}, nil)
+			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
 				BaseChat: tgbotapi.BaseChat{

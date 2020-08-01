@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Feresey/banana_bot/internal/db"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
 
@@ -35,7 +35,7 @@ var (
 	needReplyMessage = "Надо использовать команду ответом на сообщение"
 )
 
-func (b *Bot) protect(target *db.Person, callMessage tgbotapi.Message) error {
+func (b *Bot) protect(target *db.Person, callMessage *tgbotapi.Message) error {
 	var reply NeedFormat
 
 	ok := false
@@ -64,7 +64,7 @@ func (b *Bot) protect(target *db.Person, callMessage tgbotapi.Message) error {
 	return nil
 }
 
-func (b *Bot) needReply(msg tgbotapi.Message) error {
+func (b *Bot) needReply(msg *tgbotapi.Message) error {
 	return b.ReplyOne(msg, NeedFormat{Message: needReplyMessage})
 }
 
@@ -101,7 +101,7 @@ func formatKick(target *tgbotapi.User, until time.Duration) NeedFormat {
 	}
 }
 
-func (b *Bot) kick(ctx context.Context, msg tgbotapi.Message, until time.Duration) error {
+func (b *Bot) kick(ctx context.Context, msg *tgbotapi.Message, until time.Duration) error {
 	if msg.ReplyToMessage == nil {
 		return b.needReply(msg)
 	}
@@ -170,7 +170,7 @@ func formatLastWarn(target *tgbotapi.User) NeedFormat {
 	}
 }
 
-func (b *Bot) warn(ctx context.Context, msg tgbotapi.Message, add bool) error {
+func (b *Bot) warn(ctx context.Context, msg *tgbotapi.Message, add bool) error {
 	if msg.ReplyToMessage == nil {
 		return b.needReply(msg)
 	}
