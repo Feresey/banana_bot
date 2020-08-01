@@ -25,7 +25,7 @@ func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 
 	switch cmd {
 	case "start":
-		formatter := NewFormatter(
+		formatter := NewFormatter(b.log,
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},
 			AddAfter(func(*tgbotapi.Message) { time.Sleep(b.c.ResponseSleep) }),
 		)

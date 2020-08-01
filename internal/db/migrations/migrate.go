@@ -2,6 +2,8 @@ package migrations
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -16,7 +18,7 @@ import (
 func Migrate(sql *sql.DB, steps int) error {
 	s, err := bindata.WithInstance(bindata.Resource(AssetNames(), Asset))
 	if err != nil {
-		return err
+		return fmt.Errorf("load bindata : %w", err)
 	}
 
 	p, err := postgres.WithInstance(sql, &postgres.Config{
@@ -31,11 +33,19 @@ func Migrate(sql *sql.DB, steps int) error {
 		"go-bindata", s,
 		"pgx", p)
 	if err != nil {
-		return err
+		return fmt.Errorf("create migrator: %w", err)
 	}
 
 	if steps != 0 {
-		return m.Steps(steps)
+		if err := m.Steps(steps); err != nil {
+			return fmt.Errorf("steps %d: %w", steps, err)
+		}
+		return nil
 	}
-	return m.Up()
+	if err := m.Up(); err != nil {
+		if !errors.Is(err, migrate.ErrNoChange) {
+			return fmt.Errorf("up: %w", err)
+		}
+	}
+	return nil
 }

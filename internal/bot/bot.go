@@ -3,6 +3,8 @@ package bot
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,6 +56,7 @@ type Bot struct {
 	done    chan struct{}
 	updates <-chan tgbotapi.Update
 	api     TelegramAPI
+	me      *tgbotapi.User
 
 	db Database
 }
@@ -68,16 +71,17 @@ func New(config Config) *Bot {
 func (b *Bot) Init() {
 	console := zap.NewDevelopmentEncoderConfig()
 	console.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	console.EncodeCaller = zapcore.FullCallerEncoder
 	consoleOut, _, err := zap.Open("stdout")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	file := zap.NewProductionEncoderConfig()
-	file.EncodeCaller = zapcore.FullCallerEncoder
+	file.EncodeCaller = zapcore.ShortCallerEncoder
 	fileOut, _, err := zap.Open("bot.log")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	log := zap.New(
@@ -85,10 +89,15 @@ func (b *Bot) Init() {
 			zapcore.NewCore(zapcore.NewConsoleEncoder(console), consoleOut, zapcore.DebugLevel),
 			zapcore.NewCore(zapcore.NewJSONEncoder(file), fileOut, zapcore.DebugLevel),
 		),
+		zap.AddCaller(),
+		zap.AddStacktrace(zap.FatalLevel),
+		zap.AddStacktrace(zap.ErrorLevel),
+		zap.AddStacktrace(zap.WarnLevel),
 	)
 
 	b.log = log.Named("bot")
 	log = log.Named("init")
+	log.Info("Init")
 
 	err = b.initAPI(log)
 	if err != nil {
@@ -109,24 +118,28 @@ func (b *Bot) Init() {
 }
 
 func (b *Bot) initAPI(log *zap.Logger) error {
-	api, err := tgbotapi.NewBotAPI(b.c.Token)
+	cli := &http.Client{
+		Timeout:   b.c.ApiTimeout,
+		Transport: &http.Transport{},
+	}
+
+	api, err := tgbotapi.NewBotAPIWithClient(b.c.Token, tgbotapi.APIEndpoint, cli)
 	if err != nil {
 		return fmt.Errorf("connect to telegram api: %w", err)
 	}
 	b.api = api
-	me, err := api.GetMe()
+	b.me, err = api.GetMe()
 	if err != nil {
 		return fmt.Errorf("get me: %w", err)
 	}
-	log.Info("Connected to api", zap.String("username", me.String()))
+	log.Info("Connected to api", zap.String("username", b.me.String()))
 	return nil
 }
 
 func (b *Bot) initDB(log *zap.Logger) error {
-	log = log.Named("db-connect")
 	log.Info("Init DB", zap.Duration("connect_timeout", b.c.DBConfig.ConnectTimeout))
 
-	b.db = db.New(log, b.c.DBConfig)
+	b.db = db.New(b.log, b.c.DBConfig)
 	ctx, cancel := context.WithTimeout(context.Background(), b.c.DBConfig.ConnectTimeout)
 	defer cancel()
 
@@ -173,8 +186,11 @@ func (b *Bot) Start() {
 
 func (b *Bot) Shutdown(ctx context.Context) (multi error) {
 	if b.api != nil {
+		b.log.Info("Stopping updates")
 		b.api.StopReceivingUpdates()
-		<-b.done
+		// fuck this
+		// <-b.done
+		b.log.Info("Updates stopped")
 	}
 	if b.db != nil {
 		if err := b.db.Shutdown(ctx); err != nil {
@@ -198,6 +214,7 @@ func (b *Bot) listen() {
 
 	limit := make(chan struct{}, b.c.MaxConcurrent)
 	for update := range b.updates {
+		b.log.Info("Got a message")
 		msg := update.Message
 		if msg == nil {
 			b.log.Debug("Non-message update", zap.Reflect("data", update))

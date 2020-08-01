@@ -46,7 +46,7 @@ func TestFormat(t *testing.T) {
 		Text:     want,
 	}).Return(nil, nil).Times(1)
 
-	err := NewFormatter(api, baseChat).Format(need)
+	err := NewFormatter(bot.log, api, baseChat).Format(need)
 	require.NoError(t, err)
 
 	wantErr := errors.New("error")
@@ -54,6 +54,6 @@ func TestFormat(t *testing.T) {
 		BaseChat: baseChat,
 		Text:     want,
 	}).Return(nil, wantErr).Times(1)
-	err = NewFormatter(api, baseChat).Format(need)
+	err = NewFormatter(bot.log, api, baseChat).Format(need)
 	require.EqualError(t, err, wantErr.Error())
 }

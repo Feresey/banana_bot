@@ -7,20 +7,32 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-const subscriptions = schemaName + "subscriptions"
+const subscriptionsTableName = schemaName + "subscriptions"
 
-var subscriptionsColumns = []string{"id", "person_id", "chat_id"}
+var subscriptionsColumns = []string{"sub_id"}
 
 // Report
 // Если в чате появился плохой человечек, то более хорошие человечки настучат об этом
 // добрым человечкам (админам), которые посадят плохого человечка на карандаш или сразу на молоток (banhammer).
 // Не все админы хотят видеть такой спам, поэтому на него сначала надо подписаться.
 // И уже потом, по подписке, будут прилетать сообщения о плохишах в чате.
-func (db *Database) Report(ctx context.Context, chatID int64) (res []int64, err error) {
+func (db *Database) Report(ctx context.Context, chatID int64) ([]int64, error) {
+	var res []int64
+	err := db.tx(ctx, func(tx pgx.Tx) error {
+		ids, err := db.report(ctx, tx, chatID)
+		res = ids
+		return err
+	})
+	return res, err
+}
+
+func (db *Database) report(ctx context.Context, tx pgx.Tx, chatID int64) (res []int64, err error) {
 	qb := psql.
-		Select(subscriptions).
-		Columns("person_id").
+		Select("user_id").
+		From(personsTableName).
+		Join(subscriptionsTableName + " ON (sub_id = person_id)").
 		Where(squirrel.Eq{"chat_id": chatID})
+
 	query, params, err := qb.ToSql()
 	if err != nil {
 		return nil, err
@@ -39,6 +51,7 @@ func (db *Database) Report(ctx context.Context, chatID int64) (res []int64, err 
 		}
 		res = append(res, tmp)
 	}
+	rows.Close()
 
 	return res, rows.Err()
 }
@@ -52,9 +65,9 @@ func (db *Database) Subscribe(ctx context.Context, p *Person) error {
 			return err
 		}
 		qb := psql.
-			Insert(subscriptions).
-			Columns(subscriptionsColumns[1:]...).
-			Values(id, p.ChatID)
+			Insert(subscriptionsTableName).
+			Columns(subscriptionsColumns...).
+			Values(id)
 		return zero(ctx, tx, qb)
 	})
 }
@@ -67,6 +80,9 @@ func (db *Database) Unsubscribe(ctx context.Context, p *Person) error {
 		if err != nil {
 			return err
 		}
-		return db.deletePerson(ctx, db.pool, id)
+		qb := psql.
+			Delete(subscriptionsTableName).
+			Where(squirrel.Eq{subscriptionsColumns[0]: id})
+		return zero(ctx, tx, qb)
 	})
 }

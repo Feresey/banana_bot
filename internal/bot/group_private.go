@@ -18,7 +18,6 @@ const (
 
 const (
 	godID = 425496698
-	myID  = 1066353768
 )
 
 type ErrProtected struct {
@@ -43,7 +42,7 @@ func (b *Bot) protect(target *db.Person, callMessage *tgbotapi.Message) error {
 	switch target.UserID {
 	case godID:
 		reply.Message = protectGodMessage
-	case myID:
+	case int64(b.me.ID):
 		reply.Message = protectMeMessage
 	case int64(callMessage.From.ID):
 		reply.Message = protectSelfMessage
@@ -113,8 +112,16 @@ func (b *Bot) kick(ctx context.Context, msg *tgbotapi.Message, until time.Durati
 	}
 
 	if err := b.protect(target, msg); err != nil {
-		return err
+		b.log.Warn("Protect", zap.Error(err))
+		return nil
 	}
+
+	_, err := b.api.DeleteMessage(tgbotapi.DeleteMessageConfig{
+		ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID})
+	if err != nil {
+		b.log.Error("Delete warns message", zap.Error(err))
+	}
+
 	if err := b.kickMember(target, until); err != nil {
 		return err
 	}
@@ -154,8 +161,8 @@ func formatWarn(target *tgbotapi.User, total int64, max int64) NeedFormat {
 
 func formatUnwarn(target *tgbotapi.User, total int64) NeedFormat {
 	return NeedFormat{
-		Message: "{{formatUser .User}}, вёл себя хорошо и у него сняли одно предупреждение. " +
-			"Сейчас предупреждений: {{.Total}}",
+		Message: "{{formatUser .User}} вёл себя хорошо и у него сняли одно предупреждение. " +
+			"Всего предупреждений: {{.Total}}",
 		FormatParams: map[string]interface{}{
 			"User":  target,
 			"Total": total,
@@ -171,9 +178,12 @@ func formatLastWarn(target *tgbotapi.User) NeedFormat {
 }
 
 func (b *Bot) warn(ctx context.Context, msg *tgbotapi.Message, add bool) error {
+	log := b.log.With(zap.Stringer("caller", msg.From), zap.Int("message_id", msg.MessageID))
+	log.Info("Warn")
 	if msg.ReplyToMessage == nil {
 		return b.needReply(msg)
 	}
+	log.Info("Caller", zap.Stringer("target", msg.ReplyToMessage.From))
 
 	targetUser := msg.ReplyToMessage.From
 	target := &db.Person{
@@ -182,20 +192,29 @@ func (b *Bot) warn(ctx context.Context, msg *tgbotapi.Message, add bool) error {
 	}
 
 	if err := b.protect(target, msg); err != nil {
-		return err
+		b.log.Warn("Protect", zap.Error(err))
+		return nil
 	}
 
+	log.Debug("Database")
 	total, err := b.db.Warn(ctx, target, add)
 	if err != nil {
 		return err
 	}
 
+	log.Debug("Response")
 	// плюшки
 	if !add {
 		return b.ToChat(msg.Chat.ID, formatUnwarn(targetUser, total))
 	}
 	if _, err := b.api.RestrictChatMember(b.limitation(target, total)); err != nil {
-		return err
+		log.Error("Restrict", zap.Error(err))
+	}
+
+	_, err = b.api.DeleteMessage(tgbotapi.DeleteMessageConfig{
+		ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID})
+	if err != nil {
+		b.log.Error("Delete warns message", zap.Error(err))
 	}
 
 	var reply NeedFormat
@@ -206,7 +225,10 @@ func (b *Bot) warn(ctx context.Context, msg *tgbotapi.Message, add bool) error {
 	case total == b.c.MaxWarn:
 		reply = formatLastWarn(targetUser)
 	case total > b.c.MaxWarn:
-		return b.kickMember(target, forever)
+		reply = formatKick(targetUser, forever)
+		if err := b.kickMember(target, forever); err != nil {
+			b.log.Error("Kick person", zap.Error(err))
+		}
 	}
 	return b.ToChat(msg.Chat.ID, reply)
 }

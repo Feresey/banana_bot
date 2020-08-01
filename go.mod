@@ -3,7 +3,7 @@ module github.com/Feresey/banana_bot
 go 1.13
 
 require (
-	github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc4
+	github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc5
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect

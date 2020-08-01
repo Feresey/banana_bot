@@ -39,14 +39,17 @@ func (b *Bot) processMessage(msg *tgbotapi.Message) error {
 	case chat.IsGroup() || chat.IsSuperGroup():
 		del, err := b.groupMessage(msg)
 		if err != nil {
-			return err
+			return fmt.Errorf("in group command: %w", err)
 		}
 		if !del {
 			return nil
 		}
 
 		_, err = b.api.DeleteMessage(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
-		return err
+		if err != nil {
+			return fmt.Errorf("delete message: %w", err)
+		}
+		return nil
 	default:
 		return ErrWTF
 	}
@@ -94,7 +97,11 @@ func (b *Bot) groupMessage(msg *tgbotapi.Message) (del bool, err error) {
 		if !b.isAdmin(msg) {
 			return false, b.ReplyOne(msg, NeedFormat{Message: onlyAdminsMessage})
 		}
-		return false, b.processAdminActions(ctx, msg)
+		err := b.processAdminActions(ctx, msg)
+		if err != nil {
+			err = fmt.Errorf("admin action: %w", err)
+		}
+		return false, err
 	}
 	return b.processPublicActions(ctx, msg)
 }

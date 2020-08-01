@@ -10,7 +10,7 @@ import (
 
 const personsTableName = schemaName + "persons"
 
-var personColumns = []string{"id", "chat_id", "user_id"}
+var personColumns = []string{"person_id", "chat_id", "user_id"}
 
 // Person : структура лежащая в базе
 type Person struct {
@@ -44,13 +44,16 @@ func (db *Database) checkPersonExists(
 	person *Person,
 ) (id int64, err error) {
 	qb := psql.
-		Select("id").
+		Select(personColumns[0]).
 		From(personsTableName).
 		Where(squirrel.Eq{
 			"chat_id": person.ChatID,
 			"user_id": person.UserID,
 		})
 	err = one(ctx, tx, qb, &id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil
+	}
 	return id, err
 }
 
@@ -63,7 +66,7 @@ func (db *Database) createPerson(
 		Insert(personsTableName).
 		Columns(personColumns[1:]...).
 		Values(person.ChatID, person.UserID).
-		Suffix("RETURNING id")
+		Suffix("RETURNING person_id")
 	err = one(ctx, tx, qb, &id)
 	return id, err
 }
@@ -71,6 +74,6 @@ func (db *Database) createPerson(
 func (db *Database) deletePerson(ctx context.Context, tx executor, id int64) error {
 	qb := psql.
 		Delete(personsTableName).
-		Where(squirrel.Eq{"id": id})
+		Where(squirrel.Eq{personColumns[0]: id})
 	return zero(ctx, tx, qb)
 }

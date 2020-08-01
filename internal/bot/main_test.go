@@ -26,8 +26,7 @@ var botConfig = &Config{
 }
 
 var (
-	bot     *Bot
-	updates = make(chan tgbotapi.Update)
+	bot *Bot
 )
 
 func TestMain(m *testing.M) {
@@ -39,11 +38,12 @@ func TestMain(m *testing.M) {
 	}
 	bot = &Bot{
 		c: botConfig,
+		me: &tgbotapi.User{
+			ID: -1,
+		},
 
 		done: make(chan struct{}),
 		log:  log.Named("test"),
-
-		updates: updates,
 	}
 
 	done := make(chan struct{})

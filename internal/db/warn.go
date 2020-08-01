@@ -8,9 +8,9 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-const warn = schemaName + "warn"
+const warn = schemaName + "warns"
 
-var warnColumns = []string{"person_id", "total"}
+var warnColumns = []string{"warn_person_id", "warn_count"}
 
 // Warn доставляет плохишу +1 в карму (точнее в счётчик выговоров)
 // параметр `add` регулирует добавлять ли в счётчик или убирать. Ну а вдруг человек хороший.
@@ -39,16 +39,16 @@ func (db *Database) warn(
 	person *Person,
 	add bool,
 ) (int64, error) {
-	id, err := db.checkPersonExists(ctx, tx, person)
+	id, err := db.GetPersonID(ctx, tx, person)
 	if err != nil {
 		return 0, err
 	}
 
 	var total int64
 	qb := psql.
-		Select("total").
+		Select(warnColumns[1]).
 		From(warn).
-		Where(squirrel.Eq{"person_id": id})
+		Where(squirrel.Eq{warnColumns[0]: id})
 	if err := one(ctx, tx, qb, &total); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return 0, err
@@ -75,6 +75,6 @@ func (db *Database) warn(
 
 	upd := psql.
 		Update(warn).
-		Set("total", total)
+		Set(warnColumns[1], total)
 	return total, zero(ctx, tx, upd)
 }

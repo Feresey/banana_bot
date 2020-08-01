@@ -3,14 +3,19 @@ package bot
 import (
 	"fmt"
 	"html/template"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
+	"go.uber.org/zap"
 )
 
 var funcs = template.FuncMap{
 	"formatUser": func(user *tgbotapi.User) string {
 		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
+	},
+	"div100": func(num int64) string {
+		return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
 	},
 }
 
@@ -42,6 +47,7 @@ func AddBefore(before BeforeFunc) formatterOption {
 }
 
 type Formatter struct {
+	log      *zap.Logger
 	api      TelegramAPI
 	baseChat tgbotapi.BaseChat
 
@@ -49,8 +55,17 @@ type Formatter struct {
 	before BeforeFunc
 }
 
-func NewFormatter(api TelegramAPI, baseChat tgbotapi.BaseChat, opts ...formatterOption) *Formatter {
-	f := &Formatter{api: api, baseChat: baseChat}
+func NewFormatter(
+	log *zap.Logger,
+	api TelegramAPI,
+	baseChat tgbotapi.BaseChat,
+	opts ...formatterOption,
+) *Formatter {
+	f := &Formatter{
+		log:      log.Named("format"),
+		api:      api,
+		baseChat: baseChat,
+	}
 	for _, opt := range opts {
 		opt(f)
 	}
@@ -72,8 +87,9 @@ func format(format NeedFormat) (string, error) {
 
 func (f *Formatter) Format(need NeedFormat) error {
 	msg := &tgbotapi.MessageConfig{
-		BaseChat: f.baseChat,
-		Text:     need.Message,
+		BaseChat:  f.baseChat,
+		Text:      need.Message,
+		ParseMode: "markdown",
 	}
 	if need.FormatParams != nil {
 		text, err := format(need)
@@ -87,6 +103,10 @@ func (f *Formatter) Format(need NeedFormat) error {
 	}
 	message, err := f.api.Send(msg)
 	if err != nil {
+		f.log.Error("Send message",
+			zap.Error(err),
+			zap.Int64("chat_id", f.baseChat.ChatID),
+		)
 		return err
 	}
 	if f.after != nil {

@@ -127,7 +127,7 @@ func TestProtect(t *testing.T) {
 
 		msg := commandMesage("/ban@bot", "group")
 		msg.ReplyToMessage = &tgbotapi.Message{From: &tgbotapi.User{
-			ID:    myID,
+			ID:    bot.me.ID,
 			IsBot: true,
 		}}
 

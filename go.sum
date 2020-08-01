@@ -38,8 +38,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ClickHouse/clickhouse-go v1.3.12/go.mod h1:EaI/sW7Azgz9UATzd5ZdZHRUhHgv5+JMS9NSr2smCJI=
-github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc4 h1:sma5Nfprk9+RhjITaO9B6+BIanl5oHEAqsQ7w7h5klA=
-github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc4/go.mod h1:QWAmMJLvryJcXC4RO0dND6/7oGoFvhvke4Pc6hCyg7Y=
+github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc5 h1:mSBJtapsWHIYA35YeOFchNNH0849xGP0UdiSlC7NF6w=
+github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc5/go.mod h1:QWAmMJLvryJcXC4RO0dND6/7oGoFvhvke4Pc6hCyg7Y=
 github.com/Masterminds/squirrel v1.4.0 h1:he5i/EXixZxrBUWcxzDYMiju9WZ3ld/l7QBNuo/eN3w=
 github.com/Masterminds/squirrel v1.4.0/go.mod h1:yaPeOnPG5ZRwL9oKdTsO/prlkPbXWZlRVMQ/gGlzIuA=
 github.com/Microsoft/go-winio v0.4.11/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=

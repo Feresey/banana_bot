@@ -63,11 +63,15 @@ func (db *Database) Init(ctx context.Context) error {
 	sql := stdlib.OpenDB(*poolConf.Copy().ConnConfig)
 	defer sql.Close()
 
-	return migrations.Migrate(sql, db.c.Migrate)
+	if err := migrations.Migrate(sql, db.c.Migrate); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	return nil
 }
 
 func (db *Database) Shutdown(_ context.Context) error {
 	db.pool.Close()
+	db.log.Info("Database stopped")
 	return nil
 }
 
@@ -77,9 +81,11 @@ func (db *Database) tx(ctx context.Context, f func(pgx.Tx) error) error {
 		return fmt.Errorf("beginning transaction %w", err)
 	}
 	if err := f(tx); err != nil {
+		db.log.Info("Error in transaction. Rejected", zap.Error(err))
 		_ = tx.Rollback(ctx)
 		return fmt.Errorf("execute transaction %w, rejected", err)
 	}
+	db.log.Info("Transaction finished. Committing.")
 	return tx.Commit(ctx)
 }
 
