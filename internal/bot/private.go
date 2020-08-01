@@ -4,6 +4,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
+	"go.uber.org/zap"
 )
 
 var (
@@ -20,10 +21,25 @@ var (
 	todoMessage = "Соре, я не умею ничего в личном чате. Хз, может тут будет статистика."
 )
 
-func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
-	cmd := msg.Command()
+// TODO inline action
+func (b *Bot) handleText(msg *tgbotapi.Message) error {
+	switch msg.Text {
+	case "logs":
+		b.log.Debug("Send log file", zap.String("filename", b.c.LogFile))
+		file := tgbotapi.NewDocumentUpload(msg.Chat.ID, b.c.LogFile)
+		_, err := b.api.Send(file)
+		return err
+	default:
+		return nil
+	}
+}
 
-	switch cmd {
+func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
+	if !msg.IsCommand() {
+		return b.handleText(msg)
+	}
+
+	switch msg.Command() {
 	case "start":
 		formatter := NewFormatter(b.log,
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},

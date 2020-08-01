@@ -28,10 +28,12 @@ var defaultConfig = bot.Config{
 		Migrate: 0,
 		SQL:     "postgres://postgres:5432",
 	},
+
+	LogFile: "bot.log",
 }
 
 func readConfig(path string) bot.Config {
-	var config bot.Config
+	var config bot.Config = defaultConfig
 
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -46,13 +48,17 @@ func readConfig(path string) bot.Config {
 }
 
 func main() {
-	configPath := flag.String("c", "", "config path")
+	configPath := flag.String("c", "config.yaml", "config path")
 	flag.Parse()
 
 	config := readConfig(*configPath)
 	token := os.Getenv("TOKEN")
 	if token != "" {
 		config.Token = token
+	}
+	sql := os.Getenv("DATABASE_URL")
+	if sql != "" {
+		config.DBConfig.SQL = sql
 	}
 
 	b := bot.New(config)

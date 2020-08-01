@@ -25,6 +25,8 @@ type Config struct {
 
 	ApiTimeout    time.Duration
 	ResponseSleep time.Duration
+
+	LogFile string
 }
 
 //go:generate go run github.com/golang/mock/mockgen -destination mock_test.go -package bot . TelegramAPI,Database
@@ -79,7 +81,7 @@ func (b *Bot) Init() {
 
 	file := zap.NewProductionEncoderConfig()
 	file.EncodeCaller = zapcore.ShortCallerEncoder
-	fileOut, _, err := zap.Open("bot.log")
+	fileOut, _, err := zap.Open(b.c.LogFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -173,6 +175,8 @@ func (b *Bot) Start() {
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	s := <-sig
 	b.log.Info("Signal received", zap.Stringer("signal", s))
+
+	go b.handleText(&tgbotapi.Message{Chat: &tgbotapi.Chat{ID: godID}}) //nolint:errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

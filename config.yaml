@@ -1,0 +1,10 @@
+maxconcurrent: 10
+maxwarn: 5
+apitimeout: 1m
+responsesleep: 1s
+logfile: bot.log
+dbconfig: 
+  loglevel: debug
+  connecttimeout: 10s
+  migrate: 0
+  sql: postgres://administrator:1234567@localhost:5432/bot
