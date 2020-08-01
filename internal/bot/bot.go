@@ -12,7 +12,7 @@ import (
 
 	"github.com/Feresey/banana_bot/internal/db"
 	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
-	"github.com/hashicorp/go-multierror"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -198,7 +198,7 @@ func (b *Bot) Shutdown(ctx context.Context) (multi error) {
 	}
 	if b.db != nil {
 		if err := b.db.Shutdown(ctx); err != nil {
-			multi = multierror.Append(multi, err)
+			multi = multierr.Append(multi, err)
 		}
 	}
 	return multi
