@@ -176,7 +176,7 @@ func (b *Bot) Start() {
 	s := <-sig
 	b.log.Info("Signal received", zap.Stringer("signal", s))
 
-	go b.handleText(&tgbotapi.Message{Chat: &tgbotapi.Chat{ID: godID}}) //nolint:errcheck
+	b.handleText(&tgbotapi.Message{Chat: &tgbotapi.Chat{ID: godID}}) //nolint:errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
