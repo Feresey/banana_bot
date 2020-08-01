@@ -11,6 +11,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang-migrate/migrate/v4 v4.12.1
 	github.com/golang/mock v1.4.4
+	github.com/golangci/golangci-lint v1.29.0
 	github.com/jackc/pgconn v1.6.4
 	github.com/jackc/pgproto3/v2 v2.0.4 // indirect
 	github.com/jackc/pgx/v4 v4.8.1

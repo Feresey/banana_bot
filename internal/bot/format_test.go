@@ -42,8 +42,9 @@ func TestFormat(t *testing.T) {
 	)
 
 	api.EXPECT().Send(&tgbotapi.MessageConfig{
-		BaseChat: baseChat,
-		Text:     want,
+		BaseChat:  baseChat,
+		Text:      want,
+		ParseMode: "markdown",
 	}).Return(nil, nil).Times(1)
 
 	err := NewFormatter(bot.log, api, baseChat).Format(need)
@@ -51,8 +52,9 @@ func TestFormat(t *testing.T) {
 
 	wantErr := errors.New("error")
 	api.EXPECT().Send(&tgbotapi.MessageConfig{
-		BaseChat: baseChat,
-		Text:     want,
+		BaseChat:  baseChat,
+		Text:      want,
+		ParseMode: "markdown",
 	}).Return(nil, wantErr).Times(1)
 	err = NewFormatter(bot.log, api, baseChat).Format(need)
 	require.EqualError(t, err, wantErr.Error())

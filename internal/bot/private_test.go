@@ -19,6 +19,7 @@ func TestStart(t *testing.T) {
 
 	for _, msg := range startMessages {
 		am.EXPECT().Send(&tgbotapi.MessageConfig{
+			ParseMode: "markdown",
 			BaseChat: tgbotapi.BaseChat{
 				ChatID: call.Chat.ID,
 			},
@@ -39,6 +40,7 @@ func TestStop(t *testing.T) {
 
 	call := commandMesage("/stop@command", "private")
 	am.EXPECT().Send(&tgbotapi.MessageConfig{
+		ParseMode: "markdown",
 		BaseChat: tgbotapi.BaseChat{
 			ChatID:           call.Chat.ID,
 			ReplyToMessageID: call.MessageID,
@@ -60,6 +62,7 @@ func TestDefault(t *testing.T) {
 	call := commandMesage("/lol_none@command", "private")
 
 	am.EXPECT().Send(&tgbotapi.MessageConfig{
+		ParseMode: "markdown",
 		BaseChat: tgbotapi.BaseChat{
 			ChatID:           call.Chat.ID,
 			ReplyToMessageID: call.MessageID,

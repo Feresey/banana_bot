@@ -3,7 +3,7 @@ all: lint bin
 	go build -v -o ./bin/ ./cmd/...
 
 .PHONY:lint
-vet:
+lint:
 	golangci-lint run
 	
 bin:

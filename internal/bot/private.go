@@ -22,6 +22,13 @@ var (
 	todoMessage = "Соре, я не умею ничего в личном чате. Хз, может тут будет статистика."
 )
 
+func (b *Bot) pushLogs() error {
+	b.log.Debug("Send log file", zap.String("filename", b.c.LogFile))
+	file := tgbotapi.NewDocumentUpload(godID, b.c.LogFile)
+	_, err := b.api.Send(file)
+	return err
+}
+
 // TODO inline action
 func (b *Bot) handleText(msg *tgbotapi.Message) error {
 	switch msg.Text {
@@ -29,10 +36,8 @@ func (b *Bot) handleText(msg *tgbotapi.Message) error {
 		if msg.From.ID != godID {
 			return fmt.Errorf("you are not god")
 		}
-		b.log.Debug("Send log file", zap.String("filename", b.c.LogFile))
-		file := tgbotapi.NewDocumentUpload(msg.Chat.ID, b.c.LogFile)
-		_, err := b.api.Send(file)
-		return err
+
+		return b.pushLogs()
 	default:
 		return nil
 	}

@@ -176,8 +176,6 @@ func (b *Bot) Start() {
 	s := <-sig
 	b.log.Info("Signal received", zap.Stringer("signal", s))
 
-	b.handleText(&tgbotapi.Message{Chat: &tgbotapi.Chat{ID: godID}, Text: "logs"}) //nolint:errcheck
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -190,6 +188,7 @@ func (b *Bot) Start() {
 
 func (b *Bot) Shutdown(ctx context.Context) (multi error) {
 	if b.api != nil {
+		_ = b.pushLogs()
 		b.log.Info("Stopping updates")
 		b.api.StopReceivingUpdates()
 		// fuck this

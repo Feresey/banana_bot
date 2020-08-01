@@ -68,6 +68,7 @@ func TestProtect(t *testing.T) {
 
 		api.EXPECT().Send(
 			&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID:           msg.Chat.ID,
 					ReplyToMessageID: msg.MessageID,
@@ -103,6 +104,7 @@ func TestProtect(t *testing.T) {
 
 		api.EXPECT().Send(
 			&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID:           msg.Chat.ID,
 					ReplyToMessageID: msg.MessageID,
@@ -117,7 +119,7 @@ func TestProtect(t *testing.T) {
 
 		bot.api = api
 		err := bot.processMessage(msg)
-		require.EqualError(t, err, ErrProtected{Who: msg.From.String()}.Error())
+		require.NoError(t, err)
 	})
 
 	t.Run("me", func(t *testing.T) {
@@ -146,6 +148,7 @@ func TestProtect(t *testing.T) {
 
 		api.EXPECT().Send(
 			&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID:           msg.Chat.ID,
 					ReplyToMessageID: msg.MessageID,
@@ -156,7 +159,7 @@ func TestProtect(t *testing.T) {
 
 		bot.api = api
 		err := bot.processMessage(msg)
-		require.EqualError(t, err, ErrProtected{Who: msg.From.String()}.Error())
+		require.NoError(t, err)
 	})
 
 	t.Run("god", func(t *testing.T) {
@@ -185,6 +188,7 @@ func TestProtect(t *testing.T) {
 
 		api.EXPECT().Send(
 			&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID:           msg.Chat.ID,
 					ReplyToMessageID: msg.MessageID,
@@ -195,7 +199,7 @@ func TestProtect(t *testing.T) {
 
 		bot.api = api
 		err := bot.processMessage(msg)
-		require.EqualError(t, err, ErrProtected{Who: msg.From.String()}.Error())
+		require.NoError(t, err)
 	})
 }
 
@@ -240,11 +244,15 @@ func TestWarn(t *testing.T) {
 			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: msg.Chat.ID,
 				},
 				Text: mustFormat(t, formatWarn(msg.ReplyToMessage.From, 1, bot.c.MaxWarn)),
 			})
+		api.EXPECT().
+			DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID}).Return(nil, nil)
 
 		err := bot.processMessage(msg)
 		require.NoError(t, err)
@@ -287,6 +295,7 @@ func TestWarn(t *testing.T) {
 
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: msg.Chat.ID,
 				},
@@ -337,11 +346,15 @@ func TestWarn(t *testing.T) {
 			Return(nil, nil)
 		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: msg.Chat.ID,
 				},
 				Text: mustFormat(t, formatLastWarn(msg.ReplyToMessage.From)),
 			})
+		api.EXPECT().
+			DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID}).Return(nil, nil)
 
 		err := bot.processMessage(msg)
 		require.NoError(t, err)
@@ -386,6 +399,16 @@ func TestWarn(t *testing.T) {
 			Return(nil, nil)
 		api.EXPECT().
 			KickChatMember(getKickConfig(target, forever))
+		api.EXPECT().
+			DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID}).Return(nil, nil)
+		api.EXPECT().
+			Send(&tgbotapi.MessageConfig{BaseChat: tgbotapi.BaseChat{
+				ChatID: msg.Chat.ID,
+			},
+				Text:      mustFormat(t, formatKick(msg.ReplyToMessage.From, forever)),
+				ParseMode: "markdown",
+			})
 
 		err := bot.processMessage(msg)
 		require.NoError(t, err)
@@ -429,7 +452,11 @@ func TestKick(t *testing.T) {
 			KickChatMember(getKickConfig(target, day)).
 			Return(nil, nil)
 		api.EXPECT().
+			DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID}).Return(nil, nil)
+		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: msg.Chat.ID,
 				},
@@ -476,7 +503,11 @@ func TestKick(t *testing.T) {
 			KickChatMember(getKickConfig(target, forever)).
 			Return(nil, nil)
 		api.EXPECT().
+			DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID: msg.Chat.ID, MessageID: msg.ReplyToMessage.MessageID}).Return(nil, nil)
+		api.EXPECT().
 			Send(&tgbotapi.MessageConfig{
+				ParseMode: "markdown",
 				BaseChat: tgbotapi.BaseChat{
 					ChatID: msg.Chat.ID,
 				},
