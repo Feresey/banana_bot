@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"time"
 
 	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
@@ -25,6 +26,9 @@ var (
 func (b *Bot) handleText(msg *tgbotapi.Message) error {
 	switch msg.Text {
 	case "logs":
+		if msg.From.ID != godID {
+			return fmt.Errorf("you are not god")
+		}
 		b.log.Debug("Send log file", zap.String("filename", b.c.LogFile))
 		file := tgbotapi.NewDocumentUpload(msg.Chat.ID, b.c.LogFile)
 		_, err := b.api.Send(file)
