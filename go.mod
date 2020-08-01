@@ -1,6 +1,6 @@
 module github.com/Feresey/banana_bot
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc5
