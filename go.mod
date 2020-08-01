@@ -1,3 +1,5 @@
+// +heroku goVersion 1.14.6
+
 module github.com/Feresey/banana_bot
 
 go 1.14
