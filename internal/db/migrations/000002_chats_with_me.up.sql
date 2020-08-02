@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS bot.chats (
+    chat_id BIGINT PRIMARY KEY
+);

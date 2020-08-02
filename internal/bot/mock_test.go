@@ -50,6 +50,21 @@ func (mr *MockTelegramAPIMockRecorder) DeleteMessage(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MockTelegramAPI)(nil).DeleteMessage), arg0)
 }
 
+// GetChat mocks base method
+func (m *MockTelegramAPI) GetChat(arg0 tgbotapi.ChatConfig) (*tgbotapi.Chat, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetChat", arg0)
+	ret0, _ := ret[0].(*tgbotapi.Chat)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetChat indicates an expected call of GetChat
+func (mr *MockTelegramAPIMockRecorder) GetChat(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChat", reflect.TypeOf((*MockTelegramAPI)(nil).GetChat), arg0)
+}
+
 // GetChatMember mocks base method
 func (m *MockTelegramAPI) GetChatMember(arg0 tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error) {
 	m.ctrl.T.Helper()
@@ -172,6 +187,49 @@ func NewMockDatabase(ctrl *gomock.Controller) *MockDatabase {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockDatabase) EXPECT() *MockDatabaseMockRecorder {
 	return m.recorder
+}
+
+// AddChatWithMe mocks base method
+func (m *MockDatabase) AddChatWithMe(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddChatWithMe", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddChatWithMe indicates an expected call of AddChatWithMe
+func (mr *MockDatabaseMockRecorder) AddChatWithMe(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddChatWithMe", reflect.TypeOf((*MockDatabase)(nil).AddChatWithMe), arg0, arg1)
+}
+
+// DelChatWithMe mocks base method
+func (m *MockDatabase) DelChatWithMe(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DelChatWithMe", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DelChatWithMe indicates an expected call of DelChatWithMe
+func (mr *MockDatabaseMockRecorder) DelChatWithMe(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelChatWithMe", reflect.TypeOf((*MockDatabase)(nil).DelChatWithMe), arg0, arg1)
+}
+
+// GetMyChats mocks base method
+func (m *MockDatabase) GetMyChats(arg0 context.Context) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMyChats", arg0)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyChats indicates an expected call of GetMyChats
+func (mr *MockDatabaseMockRecorder) GetMyChats(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyChats", reflect.TypeOf((*MockDatabase)(nil).GetMyChats), arg0)
 }
 
 // Init mocks base method

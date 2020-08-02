@@ -40,6 +40,8 @@ type TelegramAPI interface {
 	GetChatMember(tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error)
 	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (*tgbotapi.APIResponse, error)
 	IsMessageToMe(*tgbotapi.Message) bool
+
+	GetChat(config tgbotapi.ChatConfig) (*tgbotapi.Chat, error)
 }
 
 type Database interface {
@@ -49,6 +51,10 @@ type Database interface {
 	Subscribe(ctx context.Context, p *db.Person) error
 	Unsubscribe(ctx context.Context, p *db.Person) error
 	Report(ctx context.Context, chatID int64) (res []int64, err error)
+
+	GetMyChats(ctx context.Context) ([]int64, error)
+	AddChatWithMe(ctx context.Context, chatID int64) error
+	DelChatWithMe(ctx context.Context, chatID int64) error
 }
 
 type Bot struct {
@@ -217,14 +223,33 @@ func (b *Bot) listen() {
 
 	limit := make(chan struct{}, b.c.MaxConcurrent)
 	for update := range b.updates {
-		b.log.Info("Got a message")
 		msg := update.Message
+		if update.EditedMessage != nil {
+			msg = update.EditedMessage
+		}
 		if msg == nil {
 			b.log.Debug("Non-message update", zap.Reflect("data", update))
 			continue
 		}
+		b.log.Info("Got a message")
 
 		limit <- struct{}{}
+
+		go func() {
+			if !(msg.Chat.IsGroup() || msg.Chat.IsSuperGroup()) {
+				return
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			if err := b.db.AddChatWithMe(ctx, msg.Chat.ID); err != nil {
+				b.log.Warn("Save new chat",
+					zap.Error(err),
+					zap.Int64("chat_id", msg.Chat.ID),
+					zap.String("chat_name", msg.Chat.Title),
+				)
+			}
+		}()
+
 		go func() {
 			err := b.processMessage(msg)
 			if err != nil {

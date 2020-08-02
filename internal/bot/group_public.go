@@ -15,27 +15,27 @@ var (
 
 func formatReport(msg *tgbotapi.Message) NeedFormat {
 	return NeedFormat{
-		Message:      "Вас призывают в чат [{{.Chat.Title}}](https://t.me/c/{{div100 .Chat.ID}}/{{.MessageID}})",
+		Message:      "Вас призывают в чат {{formatChatMessage .Chat .MessageID}}",
 		FormatParams: msg,
 	}
 }
 
 func (b *Bot) deleteAfter(wait time.Duration) AfterFunc {
 	return func(msg *tgbotapi.Message) {
-		go func() {
-			time.Sleep(wait)
-			_, err := b.api.DeleteMessage(tgbotapi.DeleteMessageConfig{
-				ChatID:    msg.Chat.ID,
-				MessageID: msg.MessageID,
-			})
-			if err != nil {
-				b.log.Error("Delete message by timeout", zap.Error(err))
-				return
-			}
-			b.log.Debug("Delete message by timeout")
-		}()
+		time.Sleep(wait)
+		_, err := b.api.DeleteMessage(tgbotapi.DeleteMessageConfig{
+			ChatID:    msg.Chat.ID,
+			MessageID: msg.MessageID,
+		})
+		if err != nil {
+			b.log.Error("Delete message by timeout", zap.Error(err))
+			return
+		}
+		b.log.Debug("Delete message by timeout")
 	}
 }
+
+func formatCalled() NeedFormat { return NeedFormat{Message: "Админы призваны!"} }
 
 func (b *Bot) report(ctx context.Context, msg *tgbotapi.Message) (bool, error) {
 	subscribed, err := b.db.Report(ctx, msg.Chat.ID)
@@ -43,14 +43,25 @@ func (b *Bot) report(ctx context.Context, msg *tgbotapi.Message) (bool, error) {
 		return false, err
 	}
 
+	message := make(chan *tgbotapi.Message)
+
+	err = b.ToChat(
+		msg.Chat.ID,
+		formatCalled(),
+		AddAfter(b.deleteAfter(time.Minute)),
+		AddAfter(func(msg *tgbotapi.Message) { message <- msg }),
+	)
+	if err != nil {
+		b.log.Warn("Report message", zap.Error(err))
+	}
+
 	for _, subscriber := range subscribed {
-		if err := b.ToChat(subscriber, formatReport(msg)); err != nil {
+		if err := b.ToChat(subscriber, formatReport(<-message)); err != nil {
 			b.log.Error("Send report to subscriber", zap.Error(err))
 		}
 	}
-	return true, b.ToChat(msg.Chat.ID,
-		NeedFormat{Message: "Админы призваны!"},
-		AddAfter(b.deleteAfter(time.Minute)))
+	// ваще хз, удалять такое или нет
+	return false, nil
 }
 
 func (b *Bot) subscribe(ctx context.Context, msg *tgbotapi.Message) error {

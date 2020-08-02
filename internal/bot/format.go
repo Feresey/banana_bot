@@ -10,9 +10,24 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	formatChat        = `[%s](https://t.me/c/%s)`
+	formatChatMessage = `[%s](https://t.me/c/%s/%d)`
+)
+
+func div100(num int64) string {
+	return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
+}
+
 var funcs = template.FuncMap{
 	"formatUser": func(user *tgbotapi.User) string {
 		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
+	},
+	"formatChat": func(chat *tgbotapi.Chat) string {
+		return fmt.Sprintf(formatChat, chat.Title, div100(chat.ID))
+	},
+	"formatChatMessage": func(chat *tgbotapi.Chat, messageID int) string {
+		return fmt.Sprintf(formatChatMessage, chat.Title, div100(chat.ID), messageID)
 	},
 	"div100": func(num int64) string {
 		return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
@@ -36,13 +51,13 @@ type BeforeFunc func(*tgbotapi.MessageConfig)
 
 func AddAfter(after AfterFunc) formatterOption {
 	return func(f *Formatter) {
-		f.after = after
+		f.afterFuncs = append(f.afterFuncs, after)
 	}
 }
 
 func AddBefore(before BeforeFunc) formatterOption {
 	return func(f *Formatter) {
-		f.before = before
+		f.beforeFuncs = append(f.beforeFuncs, before)
 	}
 }
 
@@ -51,8 +66,8 @@ type Formatter struct {
 	api      TelegramAPI
 	baseChat tgbotapi.BaseChat
 
-	after  AfterFunc
-	before BeforeFunc
+	afterFuncs  []AfterFunc
+	beforeFuncs []BeforeFunc
 }
 
 func NewFormatter(
@@ -86,7 +101,7 @@ func format(format NeedFormat) (string, error) {
 }
 
 func (f *Formatter) Format(need NeedFormat) error {
-	msg := &tgbotapi.MessageConfig{
+	send := &tgbotapi.MessageConfig{
 		BaseChat:  f.baseChat,
 		Text:      need.Message,
 		ParseMode: "markdown",
@@ -96,12 +111,12 @@ func (f *Formatter) Format(need NeedFormat) error {
 		if err != nil {
 			return err
 		}
-		msg.Text = text
+		send.Text = text
 	}
-	if f.before != nil {
-		f.before(msg)
+	for _, fn := range f.beforeFuncs {
+		fn(send)
 	}
-	message, err := f.api.Send(msg)
+	message, err := f.api.Send(send)
 	if err != nil {
 		f.log.Error("Send message",
 			zap.Error(err),
@@ -109,8 +124,8 @@ func (f *Formatter) Format(need NeedFormat) error {
 		)
 		return err
 	}
-	if f.after != nil {
-		f.after(message)
+	for _, fn := range f.afterFuncs {
+		go fn(message)
 	}
 	return nil
 }
