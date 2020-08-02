@@ -1,4 +1,4 @@
-bin
-.vscode
+bin/
+.vscode/
 *.log
-bot
+/bot

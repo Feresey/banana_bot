@@ -35,6 +35,21 @@ func (m *MockTelegramAPI) EXPECT() *MockTelegramAPIMockRecorder {
 	return m.recorder
 }
 
+// AnswerCallbackQuery mocks base method
+func (m *MockTelegramAPI) AnswerCallbackQuery(arg0 tgbotapi.CallbackConfig) (*tgbotapi.APIResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AnswerCallbackQuery", arg0)
+	ret0, _ := ret[0].(*tgbotapi.APIResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AnswerCallbackQuery indicates an expected call of AnswerCallbackQuery
+func (mr *MockTelegramAPIMockRecorder) AnswerCallbackQuery(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackQuery", reflect.TypeOf((*MockTelegramAPI)(nil).AnswerCallbackQuery), arg0)
+}
+
 // DeleteMessage mocks base method
 func (m *MockTelegramAPI) DeleteMessage(arg0 tgbotapi.DeleteMessageConfig) (*tgbotapi.APIResponse, error) {
 	m.ctrl.T.Helper()

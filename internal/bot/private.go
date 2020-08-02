@@ -3,8 +3,11 @@ package bot
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"sync"
 	"time"
 
+	"github.com/Feresey/banana_bot/internal/db"
 	tgbotapi "github.com/Feresey/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -53,7 +56,7 @@ func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 	case "start":
 		formatter := NewFormatter(b.log,
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},
-			AddAfter(func(*tgbotapi.Message) { time.Sleep(b.c.ResponseSleep) }),
+			AddBefore(func(*tgbotapi.MessageConfig) { time.Sleep(b.c.ResponseSleep) }),
 		)
 
 		for _, msg := range startMessages {
@@ -69,7 +72,7 @@ func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 			},
 		)
 	case "subscribe":
-		return b.subscribePrivate(msg)
+		return b.subscribeInPrivate(msg)
 	default:
 		return b.ReplyOne(msg, NeedFormat{
 			Message: todoMessage,
@@ -78,7 +81,63 @@ func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 	return nil
 }
 
-func (b *Bot) subscribePrivate(msg *tgbotapi.Message) error {
+type subscribeUser struct {
+	b *Bot
+
+	UserID    int
+	MessageID int
+	mu        sync.Mutex
+	Chats     map[int64]*tgbotapi.Chat
+}
+
+func (b *Bot) newSubscriber(msg *tgbotapi.Message, chats map[int64]*tgbotapi.Chat) *subscribeUser {
+	return &subscribeUser{
+		b:         b,
+		Chats:     chats,
+		MessageID: msg.MessageID,
+		UserID:    msg.From.ID,
+	}
+}
+
+func (s *subscribeUser) subscribe(upd *tgbotapi.CallbackQuery) {
+	chatID, err := strconv.ParseInt(upd.Data, 10, 64)
+	if err != nil {
+		s.b.log.Error("Could not parse chat ID from callback",
+			zap.Error(err), zap.String("data", upd.Data))
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, exists := s.Chats[chatID]
+	if !exists {
+		s.b.log.Error("Попытка наебать detected",
+			zap.Int("пидор_id", s.UserID),
+			zap.Reflect("chats", s.Chats),
+			zap.Int64("chat_id", chatID),
+		)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	err = s.b.db.Subscribe(ctx, &db.Person{ChatID: chatID, UserID: int64(s.UserID)})
+	if err != nil {
+		s.b.log.Error("Try to subscribe by callback", zap.Error(err))
+		_, _ = s.b.api.AnswerCallbackQuery(tgbotapi.CallbackConfig{
+			CallbackQueryID: upd.ID,
+			ShowAlert:       true,
+			Text:            err.Error(),
+		})
+	}
+	_, _ = s.b.api.AnswerCallbackQuery(tgbotapi.CallbackConfig{
+		CallbackQueryID: upd.ID,
+		ShowAlert:       true,
+		Text:            "подписка успешна",
+	})
+}
+
+func (b *Bot) subscribeInPrivate(msg *tgbotapi.Message) error {
 	found, err := b.findChats(msg.From.ID)
 	if err != nil {
 		return err
@@ -86,38 +145,53 @@ func (b *Bot) subscribePrivate(msg *tgbotapi.Message) error {
 
 	reply := formatChatsNotFound()
 	if len(found) != 0 {
-		reply = formatChatsFound(found)
+		reply = formatChatsFound()
 	}
-	if err := b.ToChat(msg.Chat.ID, reply); err != nil {
+
+	msgIdCallback := make(chan int)
+	err = b.ToChat(msg.Chat.ID,
+		reply,
+		AddAfter(func(msg *tgbotapi.Message) { msgIdCallback <- msg.MessageID }),
+	)
+	if err != nil {
 		return fmt.Errorf("reply with found chats: %w", err)
 	}
 	if len(found) == 0 {
 		return nil
 	}
-	// TODO : incline query
+
+	foundChats := make([]tgbotapi.InlineKeyboardButton, 0, len(found))
+	for _, foundChat := range found {
+		title := foundChat.Title
+		if title == "" {
+			title = foundChat.UserName
+		}
+		button := tgbotapi.NewInlineKeyboardButtonData(title, strconv.FormatInt(foundChat.ID, 10))
+		foundChats = append(foundChats, button)
+	}
+
+	id := <-msgIdCallback
+	keys := tgbotapi.NewInlineKeyboardMarkup(foundChats)
+	edit := tgbotapi.NewEditMessageReplyMarkup(msg.Chat.ID, id, keys)
+	if _, err := b.api.Send(edit); err != nil {
+		return err
+	}
+
+	sub := b.newSubscriber(msg, found)
+	b.cs.AddCallback(id, sub.subscribe, time.Minute)
+
 	return nil
 }
 
 func formatChatsNotFound() NeedFormat {
-	return NeedFormat{
-		Message: "Я не нашёл тебя в чатах со мной. Бывает.",
-	}
+	return NeedFormat{Message: "Я не нашёл тебя в чатах со мной. Бывает."}
 }
 
-func formatChatsFound(chats []*tgbotapi.Chat) NeedFormat {
-	return NeedFormat{
-		Message: `Я нашёл тебя в этих чатах:
-{{range $idx, $value := .}}
-{{$idx}}) {{$value.Title}}.
-{{end}}
-
-На какие хочешь подписаться?
-Ответь списком чисел`,
-		FormatParams: chats,
-	}
+func formatChatsFound() NeedFormat {
+	return NeedFormat{Message: "Я нашёл тебя в чатах.На какие хочешь подписаться?"}
 }
 
-func (b *Bot) findChats(userID int) ([]*tgbotapi.Chat, error) {
+func (b *Bot) findChats(userID int) (map[int64]*tgbotapi.Chat, error) {
 	getChatsCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	chats, err := b.db.GetMyChats(getChatsCtx)
@@ -125,7 +199,7 @@ func (b *Bot) findChats(userID int) ([]*tgbotapi.Chat, error) {
 		return nil, err
 	}
 
-	found := make([]*tgbotapi.Chat, 0, len(chats))
+	found := make(map[int64]*tgbotapi.Chat, len(chats))
 
 	for _, chatID := range chats {
 		member, err := b.api.GetChatMember(tgbotapi.ChatConfigWithUser{
@@ -137,7 +211,8 @@ func (b *Bot) findChats(userID int) ([]*tgbotapi.Chat, error) {
 			continue
 		}
 
-		if !member.IsMember() {
+		// banned
+		if member.HasLeft() || member.WasKicked() {
 			continue
 		}
 
@@ -147,7 +222,7 @@ func (b *Bot) findChats(userID int) ([]*tgbotapi.Chat, error) {
 			continue
 		}
 
-		found = append(found, chat)
+		found[chatID] = chat
 	}
 
 	return found, nil

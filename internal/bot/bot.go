@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -40,8 +41,8 @@ type TelegramAPI interface {
 	GetChatMember(tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error)
 	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (*tgbotapi.APIResponse, error)
 	IsMessageToMe(*tgbotapi.Message) bool
-
 	GetChat(config tgbotapi.ChatConfig) (*tgbotapi.Chat, error)
+	AnswerCallbackQuery(tgbotapi.CallbackConfig) (*tgbotapi.APIResponse, error)
 }
 
 type Database interface {
@@ -65,6 +66,9 @@ type Bot struct {
 	updates <-chan tgbotapi.Update
 	api     TelegramAPI
 	me      *tgbotapi.User
+
+	cs    *callbackStorage
+	chats sync.Map
 
 	db Database
 }
@@ -106,6 +110,8 @@ func (b *Bot) Init() {
 	b.log = log.Named("bot")
 	log = log.Named("init")
 	log.Info("Init")
+
+	b.cs = NewCallbackStorage(b.log)
 
 	err = b.initAPI(log)
 	if err != nil {
@@ -223,6 +229,11 @@ func (b *Bot) listen() {
 
 	limit := make(chan struct{}, b.c.MaxConcurrent)
 	for update := range b.updates {
+		if update.CallbackQuery != nil {
+			b.cs.HandleCallabck(update.CallbackQuery)
+			continue
+		}
+
 		msg := update.Message
 		if update.EditedMessage != nil {
 			msg = update.EditedMessage
@@ -235,20 +246,7 @@ func (b *Bot) listen() {
 
 		limit <- struct{}{}
 
-		go func() {
-			if !(msg.Chat.IsGroup() || msg.Chat.IsSuperGroup()) {
-				return
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			if err := b.db.AddChatWithMe(ctx, msg.Chat.ID); err != nil {
-				b.log.Warn("Save new chat",
-					zap.Error(err),
-					zap.Int64("chat_id", msg.Chat.ID),
-					zap.String("chat_name", msg.Chat.Title),
-				)
-			}
-		}()
+		go b.addChatIfNeeded(msg.Chat)
 
 		go func() {
 			err := b.processMessage(msg)
@@ -257,5 +255,26 @@ func (b *Bot) listen() {
 			}
 			<-limit
 		}()
+	}
+}
+
+func (b *Bot) addChatIfNeeded(chat *tgbotapi.Chat) {
+	if !(chat.IsGroup() || chat.IsSuperGroup()) {
+		return
+	}
+
+	_, ok := b.chats.LoadOrStore(chat.ID, nil)
+	if ok {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if err := b.db.AddChatWithMe(ctx, chat.ID); err != nil {
+		b.log.Warn("Save new chat",
+			zap.Error(err),
+			zap.Int64("chat_id", chat.ID),
+			zap.String("chat_name", chat.Title),
+		)
 	}
 }

@@ -15,7 +15,7 @@ const (
 	formatChatMessage = `[%s](https://t.me/c/%s/%d)`
 )
 
-func div100(num int64) string {
+func trim100(num int64) string {
 	return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
 }
 
@@ -24,13 +24,14 @@ var funcs = template.FuncMap{
 		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
 	},
 	"formatChat": func(chat *tgbotapi.Chat) string {
-		return fmt.Sprintf(formatChat, chat.Title, div100(chat.ID))
+		title := chat.Title
+		if title == "" {
+			title = chat.UserName
+		}
+		return fmt.Sprintf(formatChat, title, trim100(chat.ID))
 	},
 	"formatChatMessage": func(chat *tgbotapi.Chat, messageID int) string {
-		return fmt.Sprintf(formatChatMessage, chat.Title, div100(chat.ID), messageID)
-	},
-	"div100": func(num int64) string {
-		return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
+		return fmt.Sprintf(formatChatMessage, chat.Title, trim100(chat.ID), messageID)
 	},
 }
 
