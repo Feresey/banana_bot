@@ -58,7 +58,7 @@ func formatJSON(data interface{}) NeedFormat {
 	if err != nil {
 		return formatIncorrectCommand(err.Error())
 	}
-	return NeedFormat{Message: "{{.}}", FormatParams: string(raw)}
+	return NeedFormat{Message: "```{{.}}```", FormatParams: string(raw)}
 }
 
 func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
