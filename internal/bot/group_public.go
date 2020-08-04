@@ -15,7 +15,7 @@ var (
 
 func formatReport(msg *tgbotapi.Message) NeedFormat {
 	return NeedFormat{
-		Message:      "Вас призывают в чат\n{{formatChatMessage .Chat .MessageID}}",
+		Message:      "Вас призывают в чат {{formatChatMessage .Chat .MessageID}}",
 		FormatParams: msg,
 	}
 }

@@ -19,6 +19,23 @@ func trim100(num int64) string {
 	return strings.TrimPrefix(strconv.FormatInt(num, 10), "-100")
 }
 
+var quote = map[rune]struct{}{
+	'[': {},
+	']': {},
+	')': {},
+	'(': {},
+}
+
+func quoteMD(s string) (res string) {
+	for _, c := range s {
+		if _, ok := quote[c]; ok {
+			c = ' '
+		}
+		res += string(c)
+	}
+	return
+}
+
 var funcs = template.FuncMap{
 	"formatUser": func(user *tgbotapi.User) string {
 		return fmt.Sprintf("[%s](tg://user?id=%d)", user.String(), user.ID)
@@ -28,10 +45,10 @@ var funcs = template.FuncMap{
 		if title == "" {
 			title = chat.UserName
 		}
-		return fmt.Sprintf(formatChat, title, trim100(chat.ID))
+		return fmt.Sprintf(formatChat, quoteMD(title), trim100(chat.ID))
 	},
 	"formatChatMessage": func(chat *tgbotapi.Chat, messageID int) string {
-		return fmt.Sprintf(formatChatMessage, chat.Title, trim100(chat.ID), messageID)
+		return fmt.Sprintf(formatChatMessage, quoteMD(chat.Title), trim100(chat.ID), messageID)
 	},
 }
 
