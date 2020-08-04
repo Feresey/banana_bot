@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_unique_person" ON bot.persons (user_id,chat_id);
