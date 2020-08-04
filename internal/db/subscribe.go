@@ -67,7 +67,8 @@ func (db *Database) Subscribe(ctx context.Context, p *Person) error {
 		qb := psql.
 			Insert(subscriptionsTableName).
 			Columns(subscriptionsColumns...).
-			Values(id)
+			Values(id).
+			Suffix("ON CONFLICT " + subscriptionsColumns[0] + " DO NOTHING")
 		return zero(ctx, tx, qb)
 	})
 }

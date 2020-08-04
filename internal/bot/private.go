@@ -2,8 +2,10 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -47,12 +49,49 @@ func (b *Bot) handleText(msg *tgbotapi.Message) error {
 	}
 }
 
+func formatIncorrectCommand(msg string) NeedFormat {
+	return NeedFormat{Message: "Не робит, ска: {{.}}", FormatParams: msg}
+}
+
+func formatJSON(data interface{}) NeedFormat {
+	raw, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return formatIncorrectCommand(err.Error())
+	}
+	return NeedFormat{Message: "{{.}}", FormatParams: string(raw)}
+}
+
 func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 	if !msg.IsCommand() {
 		return b.handleText(msg)
 	}
 
 	switch msg.Command() {
+	case "id":
+		if msg.From.ID != godID {
+			return fmt.Errorf("you are not god")
+		}
+		parts := strings.Split(msg.CommandArguments(), " ")
+		if len(parts) < 2 {
+			return b.ToChat(msg.Chat.ID, formatIncorrectCommand("хачу 2 аргумента"))
+		}
+		chatID, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			return b.ToChat(msg.Chat.ID, formatIncorrectCommand(err.Error()))
+		}
+		userID, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return b.ToChat(msg.Chat.ID, formatIncorrectCommand(err.Error()))
+		}
+
+		info, err := b.api.GetChatMember(tgbotapi.ChatConfigWithUser{
+			ChatID: chatID,
+			UserID: userID,
+		})
+		if err != nil {
+			return b.ToChat(msg.Chat.ID, formatIncorrectCommand(err.Error()))
+		}
+		return b.ToChat(msg.Chat.ID, formatJSON(info))
 	case "start":
 		formatter := NewFormatter(b.log,
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},
