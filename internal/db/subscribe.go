@@ -68,7 +68,7 @@ func (db *Database) Subscribe(ctx context.Context, p *Person) error {
 			Insert(subscriptionsTableName).
 			Columns(subscriptionsColumns...).
 			Values(id).
-			Suffix("ON CONFLICT " + subscriptionsColumns[0] + " DO NOTHING")
+			Suffix("ON CONFLICT (" + subscriptionsColumns[0] + ") DO NOTHING")
 		return zero(ctx, tx, qb)
 	})
 }
