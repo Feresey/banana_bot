@@ -55,8 +55,9 @@ func (b *Bot) report(ctx context.Context, msg *tgbotapi.Message) (bool, error) {
 		b.log.Warn("Report message", zap.Error(err))
 	}
 
+	reply := <-message
 	for _, subscriber := range subscribed {
-		if err := b.ToChat(subscriber, formatReport(<-message)); err != nil {
+		if err := b.ToChat(subscriber, formatReport(reply)); err != nil {
 			b.log.Error("Send report to subscriber", zap.Error(err))
 		}
 	}

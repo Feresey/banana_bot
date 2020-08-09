@@ -91,11 +91,7 @@ func (b *Bot) privateMessage(msg *tgbotapi.Message) error {
 		if err != nil {
 			return b.ToChat(msg.Chat.ID, formatIncorrectCommand(err.Error()))
 		}
-		return b.ToChat(
-			msg.Chat.ID, formatJSON(info),
-			AddBefore(func(mc *tgbotapi.MessageConfig) {
-				mc.ParseMode = ""
-			}))
+		return b.ToChat(msg.Chat.ID, formatJSON(info))
 	case "start":
 		formatter := NewFormatter(b.log,
 			b.api, tgbotapi.BaseChat{ChatID: msg.Chat.ID},
