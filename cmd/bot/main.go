@@ -14,7 +14,7 @@ import (
 )
 
 var defaultConfig = bot.Config{
-	MaxConcurrent: 10,
+	MaxConcurrent: 1,
 	MaxWarn:       5,
 
 	ApiTimeout:    10 * time.Second,

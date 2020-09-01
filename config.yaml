@@ -1,4 +1,4 @@
-maxconcurrent: 10
+maxconcurrent: 1
 maxwarn: 5
 apitimeout: 1m
 responsesleep: 1s
