@@ -7,6 +7,7 @@ go 1.16
 require (
 	github.com/Feresey/telegram-bot-api/v5 v5.0.0-rc5
 	github.com/Masterminds/squirrel v1.4.0
+	github.com/go-bindata/go-bindata/v3 v3.1.3 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang-migrate/migrate/v4 v4.12.1
 	github.com/golangci/golangci-lint v1.29.0
