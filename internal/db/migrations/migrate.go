@@ -2,41 +2,39 @@ package migrations
 
 import (
 	"database/sql"
-	"embed"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/source/httpfs"
+	bindata "github.com/golang-migrate/migrate/v4/source/go_bindata"
 )
 
-//go:embed *.sql
-var migrations embed.FS
+//go:generate go run github.com/go-bindata/go-bindata/v3/go-bindata -pkg migrations -ignore '.*\.go' -prefix . .
+//go:generate go fmt ./...
 
-func Migrate(db *sql.DB) error {
-	sourceInstance, err := httpfs.New(http.FS(migrations), ".")
+// Migrate schema fot n steps. If steps == 0 then migrate all up.
+func Migrate(sql *sql.DB) error {
+	s, err := bindata.WithInstance(bindata.Resource(AssetNames(), Asset))
 	if err != nil {
-		return err
+		return fmt.Errorf("load bindata : %w", err)
 	}
-	defer sourceInstance.Close()
 
-	targetInstance, err := postgres.WithInstance(db, &postgres.Config{
+	p, err := postgres.WithInstance(sql, &postgres.Config{
 		MigrationsTable:  "bot_migrate",
 		StatementTimeout: time.Minute,
 	})
 	if err != nil {
 		return err
 	}
-	defer targetInstance.Close()
 
-	m, err := migrate.NewWithInstance("go-embed", sourceInstance, "postgres", targetInstance)
+	m, err := migrate.NewWithInstance(
+		"go-bindata", s,
+		"pgx", p)
 	if err != nil {
-		return err
+		return fmt.Errorf("create migrator: %w", err)
 	}
-	defer m.Close()
 
 	if err := m.Up(); err != nil {
 		if !errors.Is(err, migrate.ErrNoChange) {
