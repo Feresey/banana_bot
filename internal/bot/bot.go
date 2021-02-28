@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,47 +31,19 @@ type Config struct {
 	LogFile string
 }
 
-//go:generate go run github.com/golang/mock/mockgen -destination mock_test.go -package bot . TelegramAPI,Database
-
-type TelegramAPI interface {
-	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
-	StopReceivingUpdates()
-	KickChatMember(tgbotapi.KickChatMemberConfig) (*tgbotapi.APIResponse, error)
-	Send(tgbotapi.Chattable) (*tgbotapi.Message, error)
-	DeleteMessage(tgbotapi.DeleteMessageConfig) (*tgbotapi.APIResponse, error)
-	GetChatMember(tgbotapi.ChatConfigWithUser) (*tgbotapi.ChatMember, error)
-	RestrictChatMember(tgbotapi.RestrictChatMemberConfig) (*tgbotapi.APIResponse, error)
-	IsMessageToMe(*tgbotapi.Message) bool
-	GetChat(config tgbotapi.ChatConfig) (*tgbotapi.Chat, error)
-	AnswerCallbackQuery(tgbotapi.CallbackConfig) (*tgbotapi.APIResponse, error)
-}
-
-type Database interface {
-	Init(context.Context) error
-	Shutdown(context.Context) error
-	Warn(ctx context.Context, person *db.Person, add bool) (int64, error)
-	Subscribe(ctx context.Context, p *db.Person) error
-	Unsubscribe(ctx context.Context, p *db.Person) error
-	Report(ctx context.Context, chatID int64) (res []int64, err error)
-
-	GetMyChats(ctx context.Context) ([]int64, error)
-	AddChatWithMe(ctx context.Context, chatID int64) error
-	DelChatWithMe(ctx context.Context, chatID int64) error
-}
-
 type Bot struct {
 	c   *Config
 	log *zap.Logger
 
 	done    chan struct{}
 	updates <-chan tgbotapi.Update
-	api     TelegramAPI
+	api     *tgbotapi.BotAPI
 	me      *tgbotapi.User
 
 	cs    *callbackStorage
 	chats sync.Map
 
-	db Database
+	db *db.Database
 }
 
 func New(config Config) *Bot {
@@ -166,14 +139,12 @@ func (b *Bot) initDB(log *zap.Logger) error {
 }
 
 func (b *Bot) initUpdates(log *zap.Logger) error {
-	// переподписка?
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = int(b.c.ApiTimeout.Seconds())
-	updates, err := b.api.GetUpdatesChan(u)
+	_, err := b.api.SetWebhook(tgbotapi.NewWebhook("https://bananomebot.herokuapp.com"))
 	if err != nil {
-		return fmt.Errorf("get updates %w", err)
+		return fmt.Errorf("set webhook: %w", err)
 	}
-	b.updates = updates
+
+	b.updates = b.api.ListenForWebhook("/")
 	log.Info("Subscribe on updates")
 	return nil
 }
@@ -200,7 +171,6 @@ func (b *Bot) Start() {
 
 func (b *Bot) Shutdown(ctx context.Context) (multi error) {
 	if b.api != nil {
-		_ = b.pushLogs()
 		b.log.Info("Stopping updates")
 		b.api.StopReceivingUpdates()
 		// fuck this
@@ -218,6 +188,10 @@ func (b *Bot) Shutdown(ctx context.Context) (multi error) {
 // Listen открывает стрим сообщений (обновлений) от телеги. Если возникает ошибка,
 // то библиотека срёт в лог и закрывает канал. Я ебал, зачем так делать?
 func (b *Bot) Listen() {
+	go func() {
+		err := http.ListenAndServe(net.JoinHostPort("0.0.0.0", os.Getenv("PORT")), nil)
+		b.log.Debug("serve http", zap.Error(err))
+	}()
 	go func() {
 		b.listen()
 		close(b.done)

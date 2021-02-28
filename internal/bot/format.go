@@ -64,8 +64,10 @@ type FormatOptions struct {
 
 type formatterOption func(f *Formatter)
 
-type AfterFunc func(*tgbotapi.Message)
-type BeforeFunc func(*tgbotapi.MessageConfig)
+type (
+	AfterFunc  func(*tgbotapi.Message)
+	BeforeFunc func(*tgbotapi.MessageConfig)
+)
 
 func AddAfter(after AfterFunc) formatterOption {
 	return func(f *Formatter) {
@@ -81,7 +83,7 @@ func AddBefore(before BeforeFunc) formatterOption {
 
 type Formatter struct {
 	log      *zap.Logger
-	api      TelegramAPI
+	api      *tgbotapi.BotAPI
 	baseChat tgbotapi.BaseChat
 
 	afterFuncs  []AfterFunc
@@ -90,7 +92,7 @@ type Formatter struct {
 
 func NewFormatter(
 	log *zap.Logger,
-	api TelegramAPI,
+	api *tgbotapi.BotAPI,
 	baseChat tgbotapi.BaseChat,
 	opts ...formatterOption,
 ) *Formatter {

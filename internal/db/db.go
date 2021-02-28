@@ -22,7 +22,6 @@ var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 type Config struct {
 	SQL      string
 	LogLevel string
-	Migrate  int
 
 	ConnectTimeout time.Duration
 }
@@ -63,7 +62,7 @@ func (db *Database) Init(ctx context.Context) error {
 	sql := stdlib.OpenDB(*poolConf.Copy().ConnConfig)
 	defer sql.Close()
 
-	if err := migrations.Migrate(sql, db.c.Migrate); err != nil {
+	if err := migrations.Migrate(sql); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	return nil

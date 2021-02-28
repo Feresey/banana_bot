@@ -24,9 +24,7 @@ var defaultConfig = bot.Config{
 		// fucking legacy. What about `iota`?!?!?
 		LogLevel:       pgx.LogLevel(pgx.LogLevelDebug).String(),
 		ConnectTimeout: 10 * time.Second,
-		// do migrate
-		Migrate: 0,
-		SQL:     "postgres://postgres:5432",
+		SQL:            "postgres://postgres:5432",
 	},
 
 	LogFile: "bot.log",
